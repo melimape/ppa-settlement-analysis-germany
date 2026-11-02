@@ -19,21 +19,32 @@ My background is in energy storage engineering, where I sized battery systems an
 | Item | Source or assumption |
 | --- | --- |
 | Hourly day-ahead price, DE-LU bidding zone | [Open Power System Data](https://data.open-power-system-data.org/time_series/2020-10-06/), time series package of 2020-10-06 |
-| Hourly solar and onshore wind capacity factors for Germany | Same source |
+| Hourly solar and onshore wind capacity factors for Germany | Same source: national generation divided by installed capacity (the latest capacity value is carried forward when 2020 is missing) |
 | Plants and contract prices | Hypothetical: 100 MW solar at 45 EUR/MWh and 150 MW wind at 50 EUR/MWh |
 | Generation of each plant | German national capacity factor scaled to the plant's capacity |
 | Counterparty invoices | Simulated from my results with two errors added on purpose, to test the reconciliation |
 
 A virtual PPA does not deliver physical energy. Every hour, the buyer and the plant settle the difference between the market price and the agreed price: settlement = (market price minus contract price) x generation. When the market pays less than the contract price, the buyer pays the difference to the plant. The buyer keeps the renewable energy certificates.
 
-## Results
+## Results (January to September 2020)
 
-The numbers below come from `outputs/summary.md` after running the pipeline.
+| Contract | Generation (GWh) | vs budget | Settlement (EUR M) | Budget (EUR M) | Volume effect (EUR M) | Price effect (EUR M) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Solar, 100 MW | 82.1 | +8.1% | -1.79 | -0.80 | -0.06 | -0.93 |
+| Wind, 150 MW | 250.3 | +4.2% | -7.04 | -4.12 | +0.06 | -2.98 |
 
-*(Results will be added after the first run.)*
+Negative settlement means the buyer paid the plant.
+
+**The price, not the plants, explains the overrun.** The two contracts cost EUR 8.8 million in nine months against a budget of EUR 4.9 million. The price effect accounts for EUR 3.9 million of the gap, while the volume effect stayed below EUR 0.1 million per contract. In 2020 demand fell during the COVID-19 lockdowns, and day-ahead prices dropped well below 2019 levels. A budget built only on the previous year could not anticipate that, which is the strongest reason to add price scenarios to the forecast.
+
+**Solar lost more value to timing.** In April solar captured only 52% of the average market price, because its output was concentrated in the midday hours when prices were lowest. Wind stayed between 67% and 89% during the whole period. Over the nine months the buyer paid about EUR 22/MWh above market for solar energy and EUR 28/MWh for wind.
+
+**The invoice check found both errors.** The reconciliation flagged the two problems planted in the simulated invoices: a 3% volume overstatement in the March wind invoice (EUR 36,522) and a wrong contract price in the June solar invoice (EUR 22,645).
+
+**Limitation.** OPSD does not report German solar capacity for 2020, so the end of 2019 value is used for the whole year. Germany kept adding solar panels in 2020, so solar generation is probably overstated by a few percent, and part of the +8.1% against budget may come from this.
 
 ![Generation: actual vs budget](outputs/charts/generation_actual_vs_forecast.png)
-![Monthly settlement](outputs/charts/monthly_settlement.png)
+![Cumulative settlement](outputs/charts/cumulative_settlement.png)
 ![Capture rate](outputs/charts/capture_rate.png)
 
 ## How to run it
