@@ -32,9 +32,11 @@ PROJECTS = {
 }
 INVOICE_TOLERANCE = 0.01  # flag invoice lines that differ by more than 1%
 
-# Chart colors
-COLORS = {"Solar VPPA": "#2a78d6", "Wind VPPA": "#eb6834"}
-INK, INK_2, GRID, SURFACE = "#0b0b0b", "#52514e", "#e4e3df", "#fcfcfb"
+# Chart colors: amber for solar, blue for wind (checked for colorblind readers)
+COLORS = {"Solar VPPA": "#c27c00", "Wind VPPA": "#1478a8"}
+SHORT = {"Solar VPPA": "Solar", "Wind VPPA": "Wind"}
+INK, INK_2, MUTED, GRID, SURFACE = "#1f1f1f", "#55534f", "#8a8781", "#e6e4df", "#ffffff"
+SOURCE = "Source: Open Power System Data (2020-10-06), DE-LU day-ahead prices. Contracts are hypothetical."
 
 
 # data
@@ -214,62 +216,93 @@ def reconcile(actuals: pd.DataFrame, invoices: pd.DataFrame) -> pd.DataFrame:
 
 
 # charts
-def _style(ax, title, ylabel):
+def _style(ax, title, subtitle=""):
     ax.set_facecolor(SURFACE)
-    ax.set_title(title, loc="left", fontsize=12, color=INK, pad=12)
-    ax.set_ylabel(ylabel, color=INK_2)
+    ax.set_title(title, loc="left", fontsize=13, fontweight="bold", color=INK, pad=24 if subtitle else 12)
+    if subtitle:
+        ax.text(0, 1.03, subtitle, transform=ax.transAxes, fontsize=10, color=INK_2)
     ax.grid(axis="y", color=GRID, linewidth=0.8)
     ax.set_axisbelow(True)
-    for s in ("top", "right", "left"):
-        ax.spines[s].set_visible(False)
-    ax.spines["bottom"].set_color(GRID)
-    ax.tick_params(colors=INK_2, length=0)
+    for side in ("top", "right", "left"):
+        ax.spines[side].set_visible(False)
+    ax.spines["bottom"].set_color("#bdbab3")
+    ax.tick_params(colors=INK_2, length=0, labelsize=10)
+
+
+def _footer(fig):
+    fig.text(0.01, 0.01, SOURCE, fontsize=8, color=MUTED)
 
 
 def charts(report: pd.DataFrame) -> None:
     CHARTS.mkdir(parents=True, exist_ok=True)
-    labels = {m: pd.Timestamp(2020, m, 1).strftime("%b") for m in report["month"].unique()}
+    months = sorted(report["month"].unique())
+    lab = [pd.Timestamp(2020, m, 1).strftime("%b") for m in months]
+    x = np.arange(len(months))
+    by = {name: g.set_index("month").reindex(months) for name, g in report.groupby("project", sort=False)}
 
-    # 1. Actual vs forecast generation, one panel per project (small multiples)
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4), facecolor=SURFACE, sharey=False)
-    for ax, (name, g) in zip(axes, report.groupby("project", sort=False)):
-        x = np.arange(len(g))
-        ax.bar(x, g["actual_generation_mwh"] / 1000, width=0.6, color=COLORS[name], label="Actual")
-        ax.plot(x, g["forecast_generation_mwh"] / 1000, color=INK_2, marker="o", ms=5,
-                lw=1.5, ls="--", label="Budget forecast")
-        ax.set_xticks(x, [labels[m] for m in g["month"]])
-        _style(ax, f"{name}: actual vs budget", "GWh")
-        ax.legend(frameon=False, fontsize=9, labelcolor=INK_2)
-    fig.tight_layout()
+    # 1. Generation: bars = actual, short dark marks = budget
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.6), facecolor=SURFACE)
+    for ax, (name, g) in zip(axes, by.items()):
+        act, bud = g["actual_generation_mwh"] / 1000, g["forecast_generation_mwh"] / 1000
+        ax.bar(x, act, width=0.62, color=COLORS[name], label="Actual")
+        ax.hlines(bud, x - 0.36, x + 0.36, color=INK, linewidth=2.2, label="Budget")
+        diff = act.sum() / bud.sum() - 1
+        _style(ax, f"{SHORT[name]}: monthly generation (GWh)", f"Total {act.sum():,.0f} GWh, {diff:+.1%} vs budget")
+        i = int(np.argmax(np.abs(act.values / bud.values - 1)))
+        d = act.values[i] / bud.values[i] - 1
+        ax.annotate(f"{d:+.0%}", (x[i], max(act.values[i], bud.values[i])), xytext=(0, 6),
+                    textcoords="offset points", ha="center", fontsize=10, fontweight="bold", color=INK)
+        ax.set_xticks(x, lab)
+        ax.set_ylim(0, max(act.max(), bud.max()) * 1.18)
+        ax.legend(frameon=False, fontsize=9, labelcolor=INK_2, loc="upper right")
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    _footer(fig)
     fig.savefig(CHARTS / "generation_actual_vs_forecast.png", dpi=160)
     plt.close(fig)
 
-    # 2. Monthly VPPA settlement by project
-    fig, ax = plt.subplots(figsize=(11, 4), facecolor=SURFACE)
-    months = sorted(report["month"].unique())
-    x = np.arange(len(months))
-    w = 0.38
-    for i, (name, g) in enumerate(report.groupby("project", sort=False)):
-        g = g.set_index("month").reindex(months)
-        ax.bar(x + (i - 0.5) * (w + 0.02), g["actual_settlement_eur"] / 1e6, width=w,
-               color=COLORS[name], label=name)
-    ax.axhline(0, color=INK_2, lw=1)
-    ax.set_xticks(x, [labels[m] for m in months])
-    _style(ax, "Monthly VPPA settlement (negative = buyer pays the developer)", "EUR million")
-    ax.legend(frameon=False, fontsize=9, labelcolor=INK_2, ncol=2, loc="lower right", bbox_to_anchor=(1, 1.0))
-    fig.tight_layout()
-    fig.savefig(CHARTS / "monthly_settlement.png", dpi=160)
+    # 2. Cumulative cost to the buyer (settlement with the sign flipped): actual vs budget
+    fig, ax = plt.subplots(figsize=(12, 4.8), facecolor=SURFACE)
+    gap = 0
+    for name, g in by.items():
+        act = -g["actual_settlement_eur"].cumsum() / 1e6
+        bud = -g["forecast_settlement_eur"].cumsum() / 1e6
+        gap += act.iloc[-1] - bud.iloc[-1]
+        ax.plot(x, bud, color=COLORS[name], lw=1.6, ls="--", alpha=0.8)
+        ax.plot(x, act, color=COLORS[name], lw=2.6, marker="o", ms=5)
+        ax.annotate(f"{SHORT[name]} actual  {act.iloc[-1]:.1f}", (x[-1], act.iloc[-1]), xytext=(8, 0),
+                    textcoords="offset points", va="center", fontsize=10, color=COLORS[name], fontweight="bold")
+        ax.annotate(f"{SHORT[name]} budget  {bud.iloc[-1]:.1f}", (x[-1], bud.iloc[-1]), xytext=(8, 0),
+                    textcoords="offset points", va="center", fontsize=9, color=INK_2)
+    ax.axhline(0, color="#bdbab3", lw=1)
+    ax.set_xticks(x, lab)
+    ax.set_xlim(-0.3, len(x) + 1.6)
+    _style(ax, "Cumulative amount paid by the buyer to the plants (EUR million)",
+           f"Solid line = actual, dashed = budget. After {len(x)} months the buyer paid EUR {gap:.1f} million more than budgeted")
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    _footer(fig)
+    fig.savefig(CHARTS / "cumulative_settlement.png", dpi=160)
     plt.close(fig)
 
-    # 3. Capture rate (project captured price / baseload price)
-    fig, ax = plt.subplots(figsize=(11, 4), facecolor=SURFACE)
-    for name, g in report.groupby("project", sort=False):
-        ax.plot([labels[m] for m in g["month"]], g["capture_rate"] * 100, color=COLORS[name],
-                lw=2, marker="o", ms=6, label=name)
-    ax.axhline(100, color=INK_2, lw=1, ls=":")
-    _style(ax, "Capture rate: price earned by each project vs average market price", "% of baseload price")
-    ax.legend(frameon=False, fontsize=9, labelcolor=INK_2)
-    fig.tight_layout()
+    # 3. Capture rate with the lowest month marked
+    fig, ax = plt.subplots(figsize=(12, 4.6), facecolor=SURFACE)
+    ax.axhline(100, color=MUTED, lw=1, ls=":")
+    ax.text(0, 101.5, "market average = 100%", fontsize=9, color=MUTED, ha="left")
+    for name, g in by.items():
+        cr = g["capture_rate"] * 100
+        ax.plot(x, cr, color=COLORS[name], lw=2.4, marker="o", ms=6)
+        ax.annotate(SHORT[name], (x[-1], cr.iloc[-1]), xytext=(10, 0), textcoords="offset points",
+                    va="center", fontsize=10, fontweight="bold", color=COLORS[name])
+        i = int(np.argmin(cr.values))
+        ax.annotate(f"{lab[i]}: {cr.values[i]:.0f}%", (x[i], cr.values[i]), xytext=(0, -16),
+                    textcoords="offset points", ha="center", fontsize=9, color=COLORS[name])
+    ax.set_xticks(x, lab)
+    ax.set_xlim(-0.4, len(x) - 0.2)
+    lo = min(g["capture_rate"].min() for g in by.values()) * 100
+    ax.set_ylim(lo - 10, max(110, max(g["capture_rate"].max() for g in by.values()) * 100 + 5))
+    _style(ax, "Capture rate: price earned per MWh as % of the average market price",
+           "Below 100% means the plant produced mostly in hours with cheaper electricity")
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    _footer(fig)
     fig.savefig(CHARTS / "capture_rate.png", dpi=160)
     plt.close(fig)
 
