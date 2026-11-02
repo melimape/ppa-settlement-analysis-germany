@@ -77,7 +77,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .topbar { display: flex; justify-content: space-between; align-items: center; padding: 18px 0 12px;
             border-bottom: 1px solid var(--line); font-size: 12px; gap: 12px; flex-wrap: wrap; }
   .who { font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink); text-decoration: none; }
-  .who b { color: var(--teal); }
+  .who b { color: var(--teal); } .who .role { color: var(--ink2); }
   .nav { color: var(--ink2); }
   .nav a { margin-left: 18px; text-decoration: none; border-bottom: 1.5px solid var(--amber); padding-bottom: 1px; }
 
@@ -149,14 +149,14 @@ TEMPLATE = r"""<!DOCTYPE html>
     .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   }
   @media (max-width: 520px) { h1 { font-size: 28px; } .kpi .value { font-size: 23px; } .wrap { padding: 0 14px 40px; }
-    .nav a { margin: 0 14px 0 0; } .nav .role { display: none; } table { font-size: 12px; } .note-box { padding: 20px; } }
+    .nav a { margin: 0 14px 0 0; } table { font-size: 12px; } .note-box { padding: 20px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="topbar">
-    <a class="who" href="__LINKEDIN__">Ing. <b>Melissa Aristizabal</b></a>
-    <div class="nav"><span class="role">Energy data analysis</span><a href="__REPO__">Code</a><a href="__LINKEDIN__">LinkedIn</a></div>
+    <a class="who" href="__LINKEDIN__"><b>Melissa Aristizabal</b> <span class="role">| Energy Engineer</span></a>
+    <div class="nav"><a href="__REPO__">Code</a><a href="__LINKEDIN__">LinkedIn</a></div>
   </div>
 
   <section class="intro">
