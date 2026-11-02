@@ -1,0 +1,4 @@
+data/*.csv
+outputs/portfolio.duckdb
+__pycache__/
+.ipynb_checkpoints/
