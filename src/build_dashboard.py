@@ -149,14 +149,14 @@ TEMPLATE = r"""<!DOCTYPE html>
     .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   }
   @media (max-width: 520px) { h1 { font-size: 28px; } .kpi .value { font-size: 23px; } .wrap { padding: 0 14px 40px; }
-    .nav a { margin: 0 14px 0 0; } table { font-size: 12px; } .note-box { padding: 20px; } }
+    .nav a { margin: 0 14px 0 0; } .nav .role { display: none; } table { font-size: 12px; } .note-box { padding: 20px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="topbar">
     <a class="who" href="__LINKEDIN__">Ing. <b>Melissa Aristizabal</b></a>
-    <div class="nav">Energy data analysis<a href="__REPO__">Code</a><a href="__LINKEDIN__">LinkedIn</a></div>
+    <div class="nav"><span class="role">Energy data analysis</span><a href="__REPO__">Code</a><a href="__LINKEDIN__">LinkedIn</a></div>
   </div>
 
   <section class="intro">
@@ -231,7 +231,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <h3>When the contracts cost the most</h3>
     <div class="card">
       <h4>Average payment per MWh produced, by hour of day and month, EUR/MWh</h4>
-      <p class="sub">Darker cells are the hours where each MWh cost the buyer more. Empty cells had no generation. Local time.</p>
+      <p class="sub">Darker cells are the hours where each MWh cost the buyer more. The lightest cells are hours where the buyer paid little or received money. Empty cells had no generation. Local time.</p>
       <div class="chart" id="c_heat" style="height:330px"></div>
     </div>
   </section>
@@ -345,7 +345,8 @@ function render(view) {
   sel.forEach(p => rows(p).forEach(r => { if (!low || r.capture_rate < low.capture_rate) low = r; }));
   const disputed = sum(flagged.map(r => Math.abs(r.settlement_diff_eur)));
   const f1 = Math.abs(priceCost) >= Math.abs(volCost)
-    ? `<b>Prices, not production, explain the gap.</b> Lower captured prices added EUR ${fmt(priceCost, 2)}M of cost; generation changed it by only EUR ${sgn(volCost, 2)}M.`
+    ? `<b>Prices, not production, explain the gap.</b> Lower captured prices added EUR ${fmt(priceCost, 2)}M of cost; ` +
+      (Math.abs(volCost) < 0.01 ? `the volume effects of the two plants cancel each other out.` : `generation changed it by only EUR ${sgn(volCost, 2)}M.`)
     : `<b>Production explains most of the gap:</b> EUR ${sgn(volCost, 2)}M from volume against EUR ${sgn(priceCost, 2)}M from prices.`;
   const f2 = `<b>Lowest capture rate: ${NAME[low.project]} in ${MON[low.month]}, ${fmt(low.capture_rate * 100, 0)}%</b> of the average market price. That is the month where each MWh was worth least to the buyer.`;
   const f3 = flagged.length
@@ -368,7 +369,7 @@ function render(view) {
   // 01 Bridge
   Plotly.react("c_bridge", [{
     type: "waterfall", x: ["Budget", "Volume", "Price", "Actual"], measure: ["absolute", "relative", "relative", "total"],
-    y: [bud, volCost, priceCost, 0], text: [fmt(bud, 2), sgn(volCost, 2), sgn(priceCost, 2), fmt(paid, 2)],
+    y: [bud, volCost, priceCost, 0], text: [fmt(bud, 2), Math.abs(volCost) < 0.005 ? "0.00" : sgn(volCost, 2), sgn(priceCost, 2), fmt(paid, 2)],
     textposition: "outside", textfont: { family: "JetBrains Mono, monospace", size: 12, color: "#1b2a27" }, cliponaxis: false,
     connector: { line: { color: "#cfc9ba", width: 1, dash: "dot" } },
     increasing: { marker: { color: "#b4452f" } }, decreasing: { marker: { color: "#8fb3ab" } }, totals: { marker: { color: "#13302b" } },
@@ -378,8 +379,11 @@ function render(view) {
   // 02 Captured price vs contract price
   const base = rows(projects[0]).map(v => v.baseload_price_eur_mwh);
   const tp = [{ x: X, y: base, mode: "lines", line: { color: "#8a9692", width: 2 }, hovertemplate: "%{y:.1f}<extra>Average market price</extra>" }];
-  const pa = [{ x: X[0], y: base[0], text: "Average market price", showarrow: false, xanchor: "left", yshift: 10, font: { color: "#8a9692", size: 11 } }];
-  if (sel.some(p => rows(p)[0].actual_capture_price_eur_mwh > base[0])) pa[0].yshift = -10;
+  // label the market line in the month where it sits furthest above the captured prices
+  let li = 0, best = -Infinity;
+  base.forEach((b, i) => { const top = Math.max(...sel.map(p => rows(p)[i].actual_capture_price_eur_mwh)); if (b - top > best) { best = b - top; li = i; } });
+  const pa = [{ x: X[li], y: base[li], text: "Average market price", showarrow: false, yshift: best > 0 ? 12 : -12,
+    font: { color: "#8a9692", size: 11 } }];
   sel.forEach(p => {
     const cp = rows(p).map(v => v.actual_capture_price_eur_mwh), k = DATA.strikes[p];
     tp.push({ x: X, y: X.map(() => k), mode: "lines", line: { color: C[p], width: 1.5, dash: "dot" }, hovertemplate: "%{y:.0f}<extra>" + NAME[p] + " contract</extra>" });
@@ -406,7 +410,8 @@ function render(view) {
   }));
   Plotly.react("c_heat", [{
     type: "heatmap", x: X, y: hours.map(h => String(h).padStart(2, "0") + ":00"), z, xgap: 2, ygap: 1, hoverongaps: false,
-    colorscale: [[0, "#fcfbf8"], [0.35, "#bfd8d2"], [0.7, "#2e7d6a"], [1, "#13302b"]], zmin: 0,
+    colorscale: [[0, "#fcfbf8"], [0.35, "#bfd8d2"], [0.7, "#2e7d6a"], [1, "#13302b"]],
+    zmin: 0, zmax: Math.max(...z.flat().filter(v => v !== null)),  // hours where the buyer received money show as the lightest color
     colorbar: { thickness: 10, outlinewidth: 0, tickfont: FONT, ticksuffix: " EUR", len: 0.9 },
     hovertemplate: "%{x}, %{y}: EUR %{z:.1f}/MWh<extra></extra>",
   }], layout({ hovermode: "closest", margin: { l: 52, r: 10, t: 6, b: 32 },
