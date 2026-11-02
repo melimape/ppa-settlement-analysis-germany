@@ -53,8 +53,12 @@ def make_demo_data() -> pd.DataFrame:
         {
             "utc_timestamp": ts,
             "DE_LU_price_day_ahead": price,
-            "DE_solar_profile": solar,
-            "DE_wind_onshore_profile": wind,
+            "DE_solar_profile": np.where(ts.year == 2020, np.nan, solar),
+            "DE_wind_onshore_profile": np.where(ts.year == 2020, np.nan, wind),
+            "DE_solar_capacity": np.where(ts.year == 2020, np.nan, 49000.0),
+            "DE_solar_generation_actual": solar * 49000,
+            "DE_wind_onshore_capacity": np.where(ts.year == 2020, np.nan, 53000.0),
+            "DE_wind_onshore_generation_actual": wind * 53000,
         }
     )
 
@@ -68,15 +72,27 @@ def load_data(demo: bool) -> pd.DataFrame:
         df = pd.read_csv(DATA, parse_dates=["utc_timestamp"])
     df["utc_timestamp"] = pd.to_datetime(df["utc_timestamp"], utc=True)
     df["local_time"] = df["utc_timestamp"].dt.tz_convert("Europe/Berlin")
+    # Capacity factor = actual national generation / installed capacity.
+    # The OPSD profile columns stop before 2020, so the same formula is used for
+    # both years. Capacity is carried forward when the latest value is missing.
     for tech in ("solar", "wind_onshore"):
-        prof = f"DE_{tech}_profile"
-        if prof not in df or df[prof].isna().all():
-            df[prof] = df[f"DE_{tech}_generation_actual"] / df[f"DE_{tech}_capacity"]
+        gen, cap, prof = (f"DE_{tech}_generation_actual", f"DE_{tech}_capacity", f"DE_{tech}_profile")
+        if gen in df and cap in df and df[cap].notna().any():
+            cf = df[gen] / df[cap].ffill()
+        else:
+            cf = df[prof]
+        df[prof] = cf.interpolate(limit=3).clip(0, 1)
     df = df.rename(columns={"DE_LU_price_day_ahead": "price_eur_mwh"})
     df = df.dropna(subset=["price_eur_mwh"])
     df["year"] = df["local_time"].dt.year
     df["month"] = df["local_time"].dt.month
     df["hour"] = df["local_time"].dt.hour
+    # Data check: share of hours with a capacity factor, by year
+    for tech in ("solar", "wind_onshore"):
+        cov = df.groupby("year")[f"DE_{tech}_profile"].apply(lambda x: x.notna().mean())
+        print(f"Hours with {tech} data: " + ", ".join(f"{y}: {v:.0%}" for y, v in cov.items()))
+        if (cov < 0.9).any():
+            print(f"WARNING: {tech} data is incomplete in some years, check the results")
     return df
 
 
@@ -106,7 +122,7 @@ def budget_forecast(hourly: pd.DataFrame, months: list[int]) -> pd.DataFrame:
         # Typical capacity factor by month and hour of day
         shape = h.groupby(["month", "hour"])["capacity_factor"].mean()
         # Price the project captured in each month of the history year
-        cap = h.groupby("month").apply(
+        cap = h.groupby("month")[["price_eur_mwh", "generation_mwh"]].apply(
             lambda x: np.average(x["price_eur_mwh"], weights=x["generation_mwh"])
             if x["generation_mwh"].sum() > 0 else x["price_eur_mwh"].mean()
         )
@@ -138,7 +154,7 @@ def monthly_actuals(hourly: pd.DataFrame) -> pd.DataFrame:
     ).reset_index()
     # Keep only complete months (the source ends mid-day in local time)
     days = m["month"].map(lambda mo: pd.Period(f"{ANALYSIS_YEAR}-{mo:02d}").days_in_month)
-    m = m[m["hours"] >= days * 24 - 1].copy()
+    m = m[m["hours"] >= days * 24 * 0.98].copy()  # tolerate a few missing hours
     m["actual_capture_price_eur_mwh"] = m["revenue_at_market_eur"] / m["actual_generation_mwh"]
     m["capture_rate"] = m["actual_capture_price_eur_mwh"] / m["baseload_price_eur_mwh"]
     cap = m["project"].map({k: v["capacity_mw"] for k, v in PROJECTS.items()})
