@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solar and wind PPA settlement, Germany 2020 | Melissa Aristizabal</title>
+<meta name="description" content="Settlement, budget variance and invoice checks for two virtual PPAs in Germany, built by Melissa Aristizabal, Energy Engineer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root {
+    --bg: #f6f4ee; --panel: #fcfbf8; --ink: #1b2a27; --ink2: #4a5a56; --muted: #8a9692; --line: #ded9cc;
+    --dark: #13302b; --teal: #2e7d6a; --amber: #e9a23b; --amber-text: #b5701a; --mint: #bfd8d2; --red: #b4452f;
+    --head: "Space Grotesk", "DM Sans", system-ui, sans-serif; --body: "DM Sans", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; }
+  a { color: inherit; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px 56px; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 18px 0 12px;
+            border-bottom: 1px solid var(--line); font-size: 12px; gap: 12px; flex-wrap: wrap; }
+  .who { font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink); text-decoration: none; }
+  .who b { color: var(--teal); }
+  .nav { color: var(--ink2); }
+  .nav a { margin-left: 18px; text-decoration: none; border-bottom: 1.5px solid var(--amber); padding-bottom: 1px; }
+
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--teal); margin: 0 0 8px; }
+  .intro { display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: end; padding: 40px 0 26px; }
+  h1 { font-family: var(--head); font-weight: 700; font-size: 38px; line-height: 1.08; letter-spacing: -.02em; margin: 0; }
+  h1 em { font-style: normal; color: var(--teal); }
+  .lead { color: var(--ink2); margin: 14px 0 0; max-width: 640px; line-height: 1.6; }
+
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--panel); }
+  .seg button { border: 0; background: transparent; padding: 8px 16px; border-radius: 999px; font: 500 14px var(--body);
+                color: var(--ink2); cursor: pointer; }
+  .seg button.on { background: var(--dark); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .kpi { padding: 18px 20px 18px 0; }
+  .kpi + .kpi { padding-left: 20px; border-left: 1px solid var(--line); }
+  .kpi .label { font-size: 13px; color: var(--ink2); }
+  .kpi .value { font-family: var(--head); font-size: 32px; font-weight: 600; margin: 6px 0 2px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .kpi .note { font-size: 13px; color: var(--muted); }
+  .bad { color: var(--red); font-weight: 700; } .good { color: var(--teal); font-weight: 700; }
+
+  .note-box { margin: 26px 0 8px; background: var(--dark); color: #e9eeec; border-radius: 10px; padding: 24px 26px;
+              display: grid; grid-template-columns: 1.25fr 1fr; gap: 30px; }
+  .note-box h2 { font-family: var(--head); font-size: 15px; font-weight: 600; color: var(--amber); margin: 0 0 12px;
+                 letter-spacing: .02em; }
+  .note-box ol, .note-box ul { margin: 0; padding-left: 20px; line-height: 1.55; }
+  .note-box li { margin-bottom: 8px; }
+  .note-box li b { color: #fff; }
+  .note-box .sig { font-size: 12px; color: var(--mint); margin-top: 12px; font-family: var(--mono); }
+
+  section.block { margin-top: 36px; }
+  .block > .eyebrow { margin-bottom: 4px; }
+  .block > h3 { font-family: var(--head); font-size: 22px; font-weight: 600; margin: 0 0 14px; letter-spacing: -.01em; }
+  .grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 18px 8px; }
+  .card h4 { font-size: 15px; font-weight: 700; margin: 0; }
+  .card p.sub { font-size: 13px; color: var(--ink2); margin: 4px 0 0; line-height: 1.45; }
+  .chart { height: 300px; }
+  .key { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--ink2); margin-top: 8px; }
+  .key i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--ink2); vertical-align: middle; margin-right: 6px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 10px 0 12px; }
+  th { text-align: left; font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--line); padding: 8px 6px; font-size: 12px;
+       text-transform: uppercase; letter-spacing: .05em; }
+  td { padding: 9px 6px; border-bottom: 1px solid var(--line); }
+  td.num { text-align: right; font-family: var(--mono); font-size: 13px; }
+  th.num { text-align: right; }
+  .tag { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .tag.review { color: var(--red); } .tag.ok { color: var(--teal); }
+  .sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+  dl.checks { display: grid; grid-template-columns: 1fr auto; gap: 0; margin: 10px 0 12px; font-size: 14px; }
+  dl.checks dt, dl.checks dd { padding: 9px 0; border-bottom: 1px solid var(--line); margin: 0; }
+  dl.checks dd { font-family: var(--mono); font-size: 13px; text-align: right; }
+
+  .method { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .method div { border-top: 2px solid var(--teal); padding-top: 12px; font-size: 14px; line-height: 1.55; color: var(--ink2); }
+  .method b { display: block; color: var(--ink); margin-bottom: 4px; }
+  .method .ai { border-top-color: var(--amber); }
+
+  footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted);
+           line-height: 1.6; display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+
+  @media (max-width: 880px) {
+    .intro, .grid, .note-box, .method { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .kpi:nth-child(3) { padding-left: 0; border-left: 0; }
+    .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  }
+  @media (max-width: 520px) { h1 { font-size: 28px; } .kpi .value { font-size: 23px; } .wrap { padding: 0 14px 40px; }
+    .nav a { margin: 0 14px 0 0; } .nav .role { display: none; } table { font-size: 12px; } .note-box { padding: 20px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="who" href="https://www.linkedin.com/in/melissa-aristizabal">Ing. <b>Melissa Aristizabal</b></a>
+    <div class="nav"><span class="role">Energy data analysis</span><a href="https://github.com/melimape/ppa-settlement-analysis-germany">Code</a><a href="https://www.linkedin.com/in/melissa-aristizabal">LinkedIn</a></div>
+  </div>
+
+  <section class="intro">
+    <div>
+      <p class="eyebrow">Case study | Renewable PPA analytics</p>
+      <h1>Solar and wind PPA settlement,<br><em>Germany 2020</em></h1>
+      <p class="lead">I settled two virtual PPAs, a 100 MW solar plant and a 150 MW wind farm, hour by hour against the German
+        day-ahead price from January to September 2020, and compared the result with a budget built only from 2019 data.
+        The contracts are hypothetical. Prices and generation profiles are real.</p>
+    </div>
+    <div class="seg" id="seg" role="group" aria-label="Choose contracts">
+      <button data-v="all" class="on">Solar + Wind</button>
+      <button data-v="Solar VPPA">Solar</button>
+      <button data-v="Wind VPPA">Wind</button>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="note-box">
+    <div>
+      <h2>What Finance needs to know</h2>
+      <ol id="findings"></ol>
+    </div>
+    <div>
+      <h2>What I would do next</h2>
+      <ul>
+        <li><b>Budget with price scenarios,</b> not a single price path. A low price case would have covered most of this gap.</li>
+        <li><b>Track capture rate every month</b> as an early warning; it moved before the cost did.</li>
+        <li><b>Hold payment on the flagged invoices</b> until the counterparty explains the difference.</li>
+      </ul>
+      <p class="sig">Analyst note | M. Aristizabal</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <p class="eyebrow">01 | Cost</p>
+    <h3>Where the money went</h3>
+    <div class="grid">
+      <div class="card">
+        <h4>Cumulative payments to the plants, EUR million</h4>
+        <div class="key"><span><i></i>Actual</span><span><i style="border-top-style:dashed"></i>Budget</span></div>
+        <div class="chart" id="c_cum"></div>
+      </div>
+      <div class="card">
+        <h4>From budget to actual, EUR million</h4>
+        <p class="sub">Red adds cost, green reduces it.</p>
+        <div class="chart" id="c_bridge"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <p class="eyebrow">02 | Price</p>
+    <h3>Why the buyer paid more</h3>
+    <div class="grid">
+      <div class="card">
+        <h4>Captured price vs contract price, EUR/MWh</h4>
+        <p class="sub">The buyer pays the gap between the dotted contract line and the price each plant actually captured. Pick Solar or Wind to shade the gap.</p>
+        <div class="chart" id="c_price"></div>
+      </div>
+      <div class="card">
+        <h4>Capture rate</h4>
+        <p class="sub">Captured price as % of the monthly average price.</p>
+        <div class="chart" id="c_cap"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <p class="eyebrow">03 | Timing</p>
+    <h3>When the contracts cost the most</h3>
+    <div class="card">
+      <h4>Average payment per MWh produced, by hour of day and month, EUR/MWh</h4>
+      <p class="sub">Darker cells are the hours where each MWh cost the buyer more. The lightest cells are hours where the buyer paid little or received money. Empty cells had no generation. Local time.</p>
+      <div class="chart" id="c_heat" style="height:330px"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <p class="eyebrow">04 | Volume</p>
+    <h3>Generation against budget</h3>
+    <div class="card">
+      <h4>Monthly generation, GWh</h4>
+      <p class="sub">Bars are actual generation, short black marks are the budget.</p>
+      <div class="chart" id="c_gen" style="height:260px"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <p class="eyebrow">05 | Controls</p>
+    <h3>Invoice and data checks</h3>
+    <div class="grid">
+      <div class="card">
+        <h4>Invoice check</h4>
+        <p class="sub">Counterparty invoices (simulated) against my own settlement calculation, 1% tolerance.</p>
+        <table id="tbl"></table>
+      </div>
+      <div class="card">
+        <h4>Data checks</h4>
+        <p class="sub">Run every time the pipeline loads new data.</p>
+        <dl class="checks" id="checks"></dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <p class="eyebrow">06 | Method</p>
+    <h3>How it was built</h3>
+    <div class="method">
+      <div><b>Settlement</b>Every hour: (market price minus contract price) x generation. Contract prices are 45 EUR/MWh for
+        solar and 50 EUR/MWh for wind. Plant output is the German national capacity factor scaled to each plant.</div>
+      <div><b>Budget and variance</b>The 2020 budget uses only 2019 shapes and captured prices. The gap is split into a volume
+        effect (more or less energy) and a price effect (higher or lower captured price).</div>
+      <div class="ai"><b>Tools and AI use</b>Python, SQL (DuckDB) and Plotly. I used Claude as a coding assistant and checked
+        every result myself: the variance effects add up to the total gap, and the invoice check catches the two errors planted on purpose.</div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Data: <a href="https://data.open-power-system-data.org/time_series/2020-10-06/">Open Power System Data</a>, time series 2020-10-06.
+      Solar capacity for 2020 uses the last 2019 value, so solar output may be slightly overstated.</span>
+    <span>Melissa Aristizabal | <a href="https://github.com/melimape/ppa-settlement-analysis-germany">GitHub</a></span>
+  </footer>
+</div>
+
+<script>
+const DATA = {"report": [{"project": "Solar VPPA", "month": 1, "actual_generation_mwh": 2172.278, "forecast_generation_mwh": 1552.684, "actual_settlement_eur": -14551.948, "forecast_settlement_eur": 21908.783, "volume_variance_eur": 8742.621, "price_variance_eur": -45203.352, "capture_rate": 1.093, "actual_capture_price_eur_mwh": 38.301, "baseload_price_eur_mwh": 35.035}, {"project": "Solar VPPA", "month": 2, "actual_generation_mwh": 3308.725, "forecast_generation_mwh": 4660.818, "actual_settlement_eur": -72065.221, "forecast_settlement_eur": -13370.461, "volume_variance_eur": 3878.74, "price_variance_eur": -62573.501, "capture_rate": 1.059, "actual_capture_price_eur_mwh": 23.22, "baseload_price_eur_mwh": 21.919}, {"project": "Solar VPPA", "month": 3, "actual_generation_mwh": 8125.576, "forecast_generation_mwh": 6234.205, "actual_settlement_eur": -233848.328, "forecast_settlement_eur": -88573.408, "volume_variance_eur": -26871.944, "price_variance_eur": -118402.976, "capture_rate": 0.72, "actual_capture_price_eur_mwh": 16.221, "baseload_price_eur_mwh": 22.54}, {"project": "Solar VPPA", "month": 4, "actual_generation_mwh": 12505.484, "forecast_generation_mwh": 10393.461, "actual_settlement_eur": -450552.03, "forecast_settlement_eur": -137587.285, "volume_variance_eur": -27958.697, "price_variance_eur": -285006.048, "capture_rate": 0.525, "actual_capture_price_eur_mwh": 8.972, "baseload_price_eur_mwh": 17.093}, {"project": "Solar VPPA", "month": 5, "actual_generation_mwh": 12268.421, "forecast_generation_mwh": 10174.889, "actual_settlement_eur": -378640.479, "forecast_settlement_eur": -98445.2, "volume_variance_eur": -20255.564, "price_variance_eur": -259939.715, "capture_rate": 0.803, "actual_capture_price_eur_mwh": 14.137, "baseload_price_eur_mwh": 17.597}, {"project": "Solar VPPA", "month": 6, "actual_generation_mwh": 11322.59, "forecast_generation_mwh": 13023.398, "actual_settlement_eur": -229475.599, "forecast_settlement_eur": -206988.063, "volume_variance_eur": 27031.868, "price_variance_eur": -49519.404, "capture_rate": 0.945, "actual_capture_price_eur_mwh": 24.733, "baseload_price_eur_mwh": 26.185}, {"project": "Solar VPPA", "month": 7, "actual_generation_mwh": 12442.223, "forecast_generation_mwh": 11531.036, "actual_settlement_eur": -233244.556, "forecast_settlement_eur": -67222.499, "volume_variance_eur": -5311.945, "price_variance_eur": -160710.111, "capture_rate": 0.873, "actual_capture_price_eur_mwh": 26.254, "baseload_price_eur_mwh": 30.063}, {"project": "Solar VPPA", "month": 8, "actual_generation_mwh": 10767.678, "forecast_generation_mwh": 10569.581, "actual_settlement_eur": -126999.773, "forecast_settlement_eur": -118566.586, "volume_variance_eur": -2222.2, "price_variance_eur": -6210.987, "capture_rate": 0.952, "actual_capture_price_eur_mwh": 33.205, "baseload_price_eur_mwh": 34.864}, {"project": "Solar VPPA", "month": 9, "actual_generation_mwh": 9169.696, "forecast_generation_mwh": 7812.132, "actual_settlement_eur": -47635.511, "forecast_settlement_eur": -90198.69, "volume_variance_eur": -15674.407, "price_variance_eur": 58237.586, "capture_rate": 0.911, "actual_capture_price_eur_mwh": 39.805, "baseload_price_eur_mwh": 43.69}, {"project": "Wind VPPA", "month": 1, "actual_generation_mwh": 42506.175, "forecast_generation_mwh": 42603.101, "actual_settlement_eur": -800822.93, "forecast_settlement_eur": -463089.665, "volume_variance_eur": 1053.566, "price_variance_eur": -338786.831, "capture_rate": 0.889, "actual_capture_price_eur_mwh": 31.16, "baseload_price_eur_mwh": 35.035}, {"project": "Wind VPPA", "month": 2, "actual_generation_mwh": 57946.003, "forecast_generation_mwh": 31231.456, "actual_settlement_eur": -1877732.325, "forecast_settlement_eur": -362571.403, "volume_variance_eur": -310133.818, "price_variance_eur": -1205027.104, "capture_rate": 0.803, "actual_capture_price_eur_mwh": 17.595, "baseload_price_eur_mwh": 21.919}, {"project": "Wind VPPA", "month": 3, "actual_generation_mwh": 38636.038, "forecast_generation_mwh": 46744.542, "actual_settlement_eur": -1217404.791, "forecast_settlement_eur": -1182901.998, "volume_variance_eur": 205191.138, "price_variance_eur": -239693.931, "capture_rate": 0.82, "actual_capture_price_eur_mwh": 18.49, "baseload_price_eur_mwh": 22.54}, {"project": "Wind VPPA", "month": 4, "actual_generation_mwh": 23167.854, "forecast_generation_mwh": 24754.429, "actual_settlement_eur": -894362.049, "forecast_settlement_eur": -391671.699, "volume_variance_eur": 25103.247, "price_variance_eur": -527793.598, "capture_rate": 0.667, "actual_capture_price_eur_mwh": 11.396, "baseload_price_eur_mwh": 17.093}, {"project": "Wind VPPA", "month": 5, "actual_generation_mwh": 20293.5, "forecast_generation_mwh": 21818.958, "actual_settlement_eur": -747836.859, "forecast_settlement_eur": -306323.704, "volume_variance_eur": 21416.415, "price_variance_eur": -462929.57, "capture_rate": 0.747, "actual_capture_price_eur_mwh": 13.149, "baseload_price_eur_mwh": 17.597}, {"project": "Wind VPPA", "month": 6, "actual_generation_mwh": 16575.453, "forecast_generation_mwh": 17363.03, "actual_settlement_eur": -459418.598, "forecast_settlement_eur": -443275.273, "volume_variance_eur": 20106.708, "price_variance_eur": -36250.033, "capture_rate": 0.851, "actual_capture_price_eur_mwh": 22.283, "baseload_price_eur_mwh": 26.185}, {"project": "Wind VPPA", "month": 7, "actual_generation_mwh": 18199.046, "forecast_generation_mwh": 16623.575, "actual_settlement_eur": -511084.558, "forecast_settlement_eur": -223383.735, "volume_variance_eur": -21170.819, "price_variance_eur": -266530.004, "capture_rate": 0.729, "actual_capture_price_eur_mwh": 21.917, "baseload_price_eur_mwh": 30.063}, {"project": "Wind VPPA", "month": 8, "actual_generation_mwh": 17385.315, "forecast_generation_mwh": 15051.9, "actual_settlement_eur": -345184.683, "forecast_settlement_eur": -286820.039, "volume_variance_eur": -44464.172, "price_variance_eur": -13900.472, "capture_rate": 0.865, "actual_capture_price_eur_mwh": 30.145, "baseload_price_eur_mwh": 34.864}, {"project": "Wind VPPA", "month": 9, "actual_generation_mwh": 15563.377, "forecast_generation_mwh": 24100.062, "actual_settlement_eur": -185400.766, "forecast_settlement_eur": -459363.609, "volume_variance_eur": 162715.029, "price_variance_eur": 111247.814, "capture_rate": 0.872, "actual_capture_price_eur_mwh": 38.087, "baseload_price_eur_mwh": 43.69}], "recon": [{"project": "Solar VPPA", "month": 1, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Solar VPPA", "month": 2, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Solar VPPA", "month": 3, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Solar VPPA", "month": 4, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Solar VPPA", "month": 5, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Solar VPPA", "month": 6, "volume_diff_pct": 0.0, "settlement_diff_eur": -22645.181, "flag": "REVIEW"}, {"project": "Solar VPPA", "month": 7, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Solar VPPA", "month": 8, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Solar VPPA", "month": 9, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Wind VPPA", "month": 1, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Wind VPPA", "month": 2, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Wind VPPA", "month": 3, "volume_diff_pct": 0.03, "settlement_diff_eur": -36522.144, "flag": "REVIEW"}, {"project": "Wind VPPA", "month": 4, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Wind VPPA", "month": 5, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Wind VPPA", "month": 6, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Wind VPPA", "month": 7, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Wind VPPA", "month": 8, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}, {"project": "Wind VPPA", "month": 9, "volume_diff_pct": 0.0, "settlement_diff_eur": 0.0, "flag": "OK"}], "heat": [{"project": "Solar VPPA", "month": 1, "hour": 0, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 1, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 2, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 3, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 4, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 5, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 6, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 7, "generation_mwh": 0.01, "settlement_eur": -0.06}, {"project": "Solar VPPA", "month": 1, "hour": 8, "generation_mwh": 21.91, "settlement_eur": -49.79}, {"project": "Solar VPPA", "month": 1, "hour": 9, "generation_mwh": 143.27, "settlement_eur": -522.17}, {"project": "Solar VPPA", "month": 1, "hour": 10, "generation_mwh": 291.62, "settlement_eur": -1637.15}, {"project": "Solar VPPA", "month": 1, "hour": 11, "generation_mwh": 406.69, "settlement_eur": -2614.87}, {"project": "Solar VPPA", "month": 1, "hour": 12, "generation_mwh": 450.15, "settlement_eur": -3404.37}, {"project": "Solar VPPA", "month": 1, "hour": 13, "generation_mwh": 408.49, "settlement_eur": -3264.52}, {"project": "Solar VPPA", "month": 1, "hour": 14, "generation_mwh": 293.06, "settlement_eur": -2210.09}, {"project": "Solar VPPA", "month": 1, "hour": 15, "generation_mwh": 136.06, "settlement_eur": -756.83}, {"project": "Solar VPPA", "month": 1, "hour": 16, "generation_mwh": 20.97, "settlement_eur": -91.95}, {"project": "Solar VPPA", "month": 1, "hour": 17, "generation_mwh": 0.05, "settlement_eur": -0.15}, {"project": "Solar VPPA", "month": 1, "hour": 18, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 19, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 20, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 21, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 22, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 1, "hour": 23, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 0, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 1, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 2, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 3, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 4, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 5, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 6, "generation_mwh": 0.01, "settlement_eur": -0.1}, {"project": "Solar VPPA", "month": 2, "hour": 7, "generation_mwh": 8.17, "settlement_eur": -145.51}, {"project": "Solar VPPA", "month": 2, "hour": 8, "generation_mwh": 100.61, "settlement_eur": -1472.8}, {"project": "Solar VPPA", "month": 2, "hour": 9, "generation_mwh": 266.65, "settlement_eur": -4285.43}, {"project": "Solar VPPA", "month": 2, "hour": 10, "generation_mwh": 429.01, "settlement_eur": -8409.6}, {"project": "Solar VPPA", "month": 2, "hour": 11, "generation_mwh": 540.4, "settlement_eur": -11380.28}, {"project": "Solar VPPA", "month": 2, "hour": 12, "generation_mwh": 572.9, "settlement_eur": -13161.69}, {"project": "Solar VPPA", "month": 2, "hour": 13, "generation_mwh": 538.82, "settlement_eur": -13440.32}, {"project": "Solar VPPA", "month": 2, "hour": 14, "generation_mwh": 439.26, "settlement_eur": -10965.19}, {"project": "Solar VPPA", "month": 2, "hour": 15, "generation_mwh": 285.65, "settlement_eur": -6375.37}, {"project": "Solar VPPA", "month": 2, "hour": 16, "generation_mwh": 115.04, "settlement_eur": -2233.85}, {"project": "Solar VPPA", "month": 2, "hour": 17, "generation_mwh": 12.2, "settlement_eur": -194.96}, {"project": "Solar VPPA", "month": 2, "hour": 18, "generation_mwh": 0.01, "settlement_eur": -0.14}, {"project": "Solar VPPA", "month": 2, "hour": 19, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 20, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 21, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 22, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 2, "hour": 23, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 3, "hour": 0, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 3, "hour": 1, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 3, "hour": 2, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 3, "hour": 3, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 3, "hour": 4, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 3, "hour": 5, "generation_mwh": 0.04, "settlement_eur": -1.07}, {"project": "Solar VPPA", "month": 3, "hour": 6, "generation_mwh": 16.39, "settlement_eur": -382.31}, {"project": "Solar VPPA", "month": 3, "hour": 7, "generation_mwh": 163.02, "settlement_eur": -3243.39}, {"project": "Solar VPPA", "month": 3, "hour": 8, "generation_mwh": 448.9, "settlement_eur": -9115.0}, {"project": "Solar VPPA", "month": 3, "hour": 9, "generation_mwh": 758.83, "settlement_eur": -18042.54}, {"project": "Solar VPPA", "month": 3, "hour": 10, "generation_mwh": 1001.02, "settlement_eur": -27611.49}, {"project": "Solar VPPA", "month": 3, "hour": 11, "generation_mwh": 1132.44, "settlement_eur": -32550.13}, {"project": "Solar VPPA", "month": 3, "hour": 12, "generation_mwh": 1160.12, "settlement_eur": -36586.46}, {"project": "Solar VPPA", "month": 3, "hour": 13, "generation_mwh": 1101.24, "settlement_eur": -37252.18}, {"project": "Solar VPPA", "month": 3, "hour": 14, "generation_mwh": 963.12, "settlement_eur": -31921.82}, {"project": "Solar VPPA", "month": 3, "hour": 15, "generation_mwh": 736.68, "settlement_eur": -21714.74}, {"project": "Solar VPPA", "month": 3, "hour": 16, "generation_mwh": 446.18, "settlement_eur": -11512.41}, {"project": "Solar VPPA", "month": 3, "hour": 17, "generation_mwh": 167.13, "settlement_eur": -3392.95}, {"project": "Solar VPPA", "month": 3, "hour": 18, "generation_mwh": 27.73, "settlement_eur": -498.45}, {"project": "Solar VPPA", "month": 3, "hour": 19, "generation_mwh": 2.74, "settlement_eur": -23.4}, {"project": "Solar VPPA", "month": 3, "hour": 20, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 3, "hour": 21, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 3, "hour": 22, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 3, "hour": 23, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 4, "hour": 0, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 4, "hour": 1, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 4, "hour": 2, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 4, "hour": 3, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 4, "hour": 4, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 4, "hour": 5, "generation_mwh": 0.12, "settlement_eur": -3.11}, {"project": "Solar VPPA", "month": 4, "hour": 6, "generation_mwh": 17.89, "settlement_eur": -415.06}, {"project": "Solar VPPA", "month": 4, "hour": 7, "generation_mwh": 176.46, "settlement_eur": -3437.1}, {"project": "Solar VPPA", "month": 4, "hour": 8, "generation_mwh": 508.54, "settlement_eur": -10394.91}, {"project": "Solar VPPA", "month": 4, "hour": 9, "generation_mwh": 902.83, "settlement_eur": -22988.32}, {"project": "Solar VPPA", "month": 4, "hour": 10, "generation_mwh": 1243.76, "settlement_eur": -37149.46}, {"project": "Solar VPPA", "month": 4, "hour": 11, "generation_mwh": 1472.84, "settlement_eur": -49432.98}, {"project": "Solar VPPA", "month": 4, "hour": 12, "generation_mwh": 1589.78, "settlement_eur": -58641.24}, {"project": "Solar VPPA", "month": 4, "hour": 13, "generation_mwh": 1597.58, "settlement_eur": -68325.58}, {"project": "Solar VPPA", "month": 4, "hour": 14, "generation_mwh": 1507.17, "settlement_eur": -70535.49}, {"project": "Solar VPPA", "month": 4, "hour": 15, "generation_mwh": 1328.18, "settlement_eur": -58832.82}, {"project": "Solar VPPA", "month": 4, "hour": 16, "generation_mwh": 1055.66, "settlement_eur": -41774.83}, {"project": "Solar VPPA", "month": 4, "hour": 17, "generation_mwh": 698.08, "settlement_eur": -20754.9}, {"project": "Solar VPPA", "month": 4, "hour": 18, "generation_mwh": 326.76, "settlement_eur": -6805.98}, {"project": "Solar VPPA", "month": 4, "hour": 19, "generation_mwh": 76.82, "settlement_eur": -1024.83}, {"project": "Solar VPPA", "month": 4, "hour": 20, "generation_mwh": 3.02, "settlement_eur": -35.41}, {"project": "Solar VPPA", "month": 4, "hour": 21, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 4, "hour": 22, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 4, "hour": 23, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 5, "hour": 0, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 5, "hour": 1, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 5, "hour": 2, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 5, "hour": 3, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 5, "hour": 4, "generation_mwh": 0.03, "settlement_eur": -1.02}, {"project": "Solar VPPA", "month": 5, "hour": 5, "generation_mwh": 6.95, "settlement_eur": -207.72}, {"project": "Solar VPPA", "month": 5, "hour": 6, "generation_mwh": 93.51, "settlement_eur": -2413.4}, {"project": "Solar VPPA", "month": 5, "hour": 7, "generation_mwh": 321.02, "settlement_eur": -6990.4}, {"project": "Solar VPPA", "month": 5, "hour": 8, "generation_mwh": 649.12, "settlement_eur": -14881.44}, {"project": "Solar VPPA", "month": 5, "hour": 9, "generation_mwh": 979.84, "settlement_eur": -26506.86}, {"project": "Solar VPPA", "month": 5, "hour": 10, "generation_mwh": 1226.85, "settlement_eur": -37085.84}, {"project": "Solar VPPA", "month": 5, "hour": 11, "generation_mwh": 1352.83, "settlement_eur": -41386.69}, {"project": "Solar VPPA", "month": 5, "hour": 12, "generation_mwh": 1397.11, "settlement_eur": -43736.15}, {"project": "Solar VPPA", "month": 5, "hour": 13, "generation_mwh": 1390.26, "settlement_eur": -46915.12}, {"project": "Solar VPPA", "month": 5, "hour": 14, "generation_mwh": 1323.68, "settlement_eur": -48023.12}, {"project": "Solar VPPA", "month": 5, "hour": 15, "generation_mwh": 1192.45, "settlement_eur": -43304.52}, {"project": "Solar VPPA", "month": 5, "hour": 16, "generation_mwh": 987.98, "settlement_eur": -33439.75}, {"project": "Solar VPPA", "month": 5, "hour": 17, "generation_mwh": 717.22, "settlement_eur": -20474.95}, {"project": "Solar VPPA", "month": 5, "hour": 18, "generation_mwh": 421.89, "settlement_eur": -9751.22}, {"project": "Solar VPPA", "month": 5, "hour": 19, "generation_mwh": 172.37, "settlement_eur": -2991.71}, {"project": "Solar VPPA", "month": 5, "hour": 20, "generation_mwh": 34.55, "settlement_eur": -516.02}, {"project": "Solar VPPA", "month": 5, "hour": 21, "generation_mwh": 0.74, "settlement_eur": -14.56}, {"project": "Solar VPPA", "month": 5, "hour": 22, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 5, "hour": 23, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 6, "hour": 0, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 6, "hour": 1, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 6, "hour": 2, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 6, "hour": 3, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 6, "hour": 4, "generation_mwh": 0.21, "settlement_eur": -5.16}, {"project": "Solar VPPA", "month": 6, "hour": 5, "generation_mwh": 16.36, "settlement_eur": -397.38}, {"project": "Solar VPPA", "month": 6, "hour": 6, "generation_mwh": 112.55, "settlement_eur": -2166.81}, {"project": "Solar VPPA", "month": 6, "hour": 7, "generation_mwh": 311.09, "settlement_eur": -4112.84}, {"project": "Solar VPPA", "month": 6, "hour": 8, "generation_mwh": 578.93, "settlement_eur": -7275.5}, {"project": "Solar VPPA", "month": 6, "hour": 9, "generation_mwh": 851.79, "settlement_eur": -13780.29}, {"project": "Solar VPPA", "month": 6, "hour": 10, "generation_mwh": 1070.08, "settlement_eur": -19452.43}, {"project": "Solar VPPA", "month": 6, "hour": 11, "generation_mwh": 1203.29, "settlement_eur": -22734.54}, {"project": "Solar VPPA", "month": 6, "hour": 12, "generation_mwh": 1265.17, "settlement_eur": -25625.4}, {"project": "Solar VPPA", "month": 6, "hour": 13, "generation_mwh": 1266.87, "settlement_eur": -30464.39}, {"project": "Solar VPPA", "month": 6, "hour": 14, "generation_mwh": 1212.77, "settlement_eur": -32367.32}, {"project": "Solar VPPA", "month": 6, "hour": 15, "generation_mwh": 1098.37, "settlement_eur": -27887.44}, {"project": "Solar VPPA", "month": 6, "hour": 16, "generation_mwh": 924.51, "settlement_eur": -21970.86}, {"project": "Solar VPPA", "month": 6, "hour": 17, "generation_mwh": 695.08, "settlement_eur": -12782.68}, {"project": "Solar VPPA", "month": 6, "hour": 18, "generation_mwh": 437.82, "settlement_eur": -5921.07}, {"project": "Solar VPPA", "month": 6, "hour": 19, "generation_mwh": 208.45, "settlement_eur": -1900.47}, {"project": "Solar VPPA", "month": 6, "hour": 20, "generation_mwh": 64.54, "settlement_eur": -582.05}, {"project": "Solar VPPA", "month": 6, "hour": 21, "generation_mwh": 4.71, "settlement_eur": -48.81}, {"project": "Solar VPPA", "month": 6, "hour": 22, "generation_mwh": 0.01, "settlement_eur": -0.15}, {"project": "Solar VPPA", "month": 6, "hour": 23, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 7, "hour": 0, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 7, "hour": 1, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 7, "hour": 2, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 7, "hour": 3, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 7, "hour": 4, "generation_mwh": 0.04, "settlement_eur": -0.78}, {"project": "Solar VPPA", "month": 7, "hour": 5, "generation_mwh": 7.64, "settlement_eur": -153.22}, {"project": "Solar VPPA", "month": 7, "hour": 6, "generation_mwh": 88.45, "settlement_eur": -1238.36}, {"project": "Solar VPPA", "month": 7, "hour": 7, "generation_mwh": 298.7, "settlement_eur": -2940.74}, {"project": "Solar VPPA", "month": 7, "hour": 8, "generation_mwh": 613.76, "settlement_eur": -5882.81}, {"project": "Solar VPPA", "month": 7, "hour": 9, "generation_mwh": 936.76, "settlement_eur": -11711.59}, {"project": "Solar VPPA", "month": 7, "hour": 10, "generation_mwh": 1185.48, "settlement_eur": -18978.19}, {"project": "Solar VPPA", "month": 7, "hour": 11, "generation_mwh": 1332.62, "settlement_eur": -24094.22}, {"project": "Solar VPPA", "month": 7, "hour": 12, "generation_mwh": 1400.5, "settlement_eur": -29287.46}, {"project": "Solar VPPA", "month": 7, "hour": 13, "generation_mwh": 1405.02, "settlement_eur": -33020.6}, {"project": "Solar VPPA", "month": 7, "hour": 14, "generation_mwh": 1346.26, "settlement_eur": -34396.64}, {"project": "Solar VPPA", "month": 7, "hour": 15, "generation_mwh": 1225.05, "settlement_eur": -29866.54}, {"project": "Solar VPPA", "month": 7, "hour": 16, "generation_mwh": 1038.65, "settlement_eur": -22984.83}, {"project": "Solar VPPA", "month": 7, "hour": 17, "generation_mwh": 784.03, "settlement_eur": -12788.17}, {"project": "Solar VPPA", "month": 7, "hour": 18, "generation_mwh": 490.54, "settlement_eur": -4473.33}, {"project": "Solar VPPA", "month": 7, "hour": 19, "generation_mwh": 224.77, "settlement_eur": -1116.36}, {"project": "Solar VPPA", "month": 7, "hour": 20, "generation_mwh": 61.13, "settlement_eur": -293.45}, {"project": "Solar VPPA", "month": 7, "hour": 21, "generation_mwh": 2.83, "settlement_eur": -17.26}, {"project": "Solar VPPA", "month": 7, "hour": 22, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 7, "hour": 23, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 8, "hour": 0, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 8, "hour": 1, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 8, "hour": 2, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 8, "hour": 3, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 8, "hour": 4, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 8, "hour": 5, "generation_mwh": 0.39, "settlement_eur": -7.09}, {"project": "Solar VPPA", "month": 8, "hour": 6, "generation_mwh": 28.6, "settlement_eur": -365.7}, {"project": "Solar VPPA", "month": 8, "hour": 7, "generation_mwh": 181.26, "settlement_eur": -1354.65}, {"project": "Solar VPPA", "month": 8, "hour": 8, "generation_mwh": 463.36, "settlement_eur": -2614.53}, {"project": "Solar VPPA", "month": 8, "hour": 9, "generation_mwh": 784.6, "settlement_eur": -5487.89}, {"project": "Solar VPPA", "month": 8, "hour": 10, "generation_mwh": 1059.16, "settlement_eur": -10563.28}, {"project": "Solar VPPA", "month": 8, "hour": 11, "generation_mwh": 1240.85, "settlement_eur": -14360.88}, {"project": "Solar VPPA", "month": 8, "hour": 12, "generation_mwh": 1326.64, "settlement_eur": -17663.62}, {"project": "Solar VPPA", "month": 8, "hour": 13, "generation_mwh": 1329.86, "settlement_eur": -20277.33}, {"project": "Solar VPPA", "month": 8, "hour": 14, "generation_mwh": 1255.84, "settlement_eur": -20302.89}, {"project": "Solar VPPA", "month": 8, "hour": 15, "generation_mwh": 1105.62, "settlement_eur": -17163.84}, {"project": "Solar VPPA", "month": 8, "hour": 16, "generation_mwh": 897.4, "settlement_eur": -11772.88}, {"project": "Solar VPPA", "month": 8, "hour": 17, "generation_mwh": 627.86, "settlement_eur": -4641.84}, {"project": "Solar VPPA", "month": 8, "hour": 18, "generation_mwh": 339.56, "settlement_eur": -691.68}, {"project": "Solar VPPA", "month": 8, "hour": 19, "generation_mwh": 113.79, "settlement_eur": 287.36}, {"project": "Solar VPPA", "month": 8, "hour": 20, "generation_mwh": 12.83, "settlement_eur": -18.73}, {"project": "Solar VPPA", "month": 8, "hour": 21, "generation_mwh": 0.05, "settlement_eur": -0.3}, {"project": "Solar VPPA", "month": 8, "hour": 22, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 8, "hour": 23, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 9, "hour": 0, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 9, "hour": 1, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 9, "hour": 2, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 9, "hour": 3, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 9, "hour": 4, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 9, "hour": 5, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 9, "hour": 6, "generation_mwh": 2.34, "settlement_eur": -4.1}, {"project": "Solar VPPA", "month": 9, "hour": 7, "generation_mwh": 71.02, "settlement_eur": 490.71}, {"project": "Solar VPPA", "month": 9, "hour": 8, "generation_mwh": 310.06, "settlement_eur": 3644.16}, {"project": "Solar VPPA", "month": 9, "hour": 9, "generation_mwh": 638.83, "settlement_eur": 4199.8}, {"project": "Solar VPPA", "month": 9, "hour": 10, "generation_mwh": 943.2, "settlement_eur": -483.24}, {"project": "Solar VPPA", "month": 9, "hour": 11, "generation_mwh": 1154.78, "settlement_eur": -4822.64}, {"project": "Solar VPPA", "month": 9, "hour": 12, "generation_mwh": 1263.64, "settlement_eur": -11820.02}, {"project": "Solar VPPA", "month": 9, "hour": 13, "generation_mwh": 1273.54, "settlement_eur": -15981.78}, {"project": "Solar VPPA", "month": 9, "hour": 14, "generation_mwh": 1182.03, "settlement_eur": -15166.28}, {"project": "Solar VPPA", "month": 9, "hour": 15, "generation_mwh": 1003.47, "settlement_eur": -9025.56}, {"project": "Solar VPPA", "month": 9, "hour": 16, "generation_mwh": 743.97, "settlement_eur": -2893.84}, {"project": "Solar VPPA", "month": 9, "hour": 17, "generation_mwh": 425.46, "settlement_eur": 1957.83}, {"project": "Solar VPPA", "month": 9, "hour": 18, "generation_mwh": 143.09, "settlement_eur": 1969.97}, {"project": "Solar VPPA", "month": 9, "hour": 19, "generation_mwh": 14.22, "settlement_eur": 299.03}, {"project": "Solar VPPA", "month": 9, "hour": 20, "generation_mwh": 0.03, "settlement_eur": 0.45}, {"project": "Solar VPPA", "month": 9, "hour": 21, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 9, "hour": 22, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Solar VPPA", "month": 9, "hour": 23, "generation_mwh": 0.0, "settlement_eur": 0.0}, {"project": "Wind VPPA", "month": 1, "hour": 0, "generation_mwh": 1786.74, "settlement_eur": -45843.98}, {"project": "Wind VPPA", "month": 1, "hour": 1, "generation_mwh": 1768.55, "settlement_eur": -50305.95}, {"project": "Wind VPPA", "month": 1, "hour": 2, "generation_mwh": 1755.1, "settlement_eur": -54881.55}, {"project": "Wind VPPA", "month": 1, "hour": 3, "generation_mwh": 1750.89, "settlement_eur": -56785.04}, {"project": "Wind VPPA", "month": 1, "hour": 4, "generation_mwh": 1750.26, "settlement_eur": -55870.71}, {"project": "Wind VPPA", "month": 1, "hour": 5, "generation_mwh": 1758.81, "settlement_eur": -48170.48}, {"project": "Wind VPPA", "month": 1, "hour": 6, "generation_mwh": 1809.89, "settlement_eur": -40193.31}, {"project": "Wind VPPA", "month": 1, "hour": 7, "generation_mwh": 1806.16, "settlement_eur": -24497.92}, {"project": "Wind VPPA", "month": 1, "hour": 8, "generation_mwh": 1793.68, "settlement_eur": -20521.38}, {"project": "Wind VPPA", "month": 1, "hour": 9, "generation_mwh": 1746.12, "settlement_eur": -21330.58}, {"project": "Wind VPPA", "month": 1, "hour": 10, "generation_mwh": 1706.35, "settlement_eur": -25461.34}, {"project": "Wind VPPA", "month": 1, "hour": 11, "generation_mwh": 1667.68, "settlement_eur": -25536.18}, {"project": "Wind VPPA", "month": 1, "hour": 12, "generation_mwh": 1652.57, "settlement_eur": -27541.14}, {"project": "Wind VPPA", "month": 1, "hour": 13, "generation_mwh": 1637.76, "settlement_eur": -28166.81}, {"project": "Wind VPPA", "month": 1, "hour": 14, "generation_mwh": 1608.47, "settlement_eur": -27169.46}, {"project": "Wind VPPA", "month": 1, "hour": 15, "generation_mwh": 1598.76, "settlement_eur": -24831.26}, {"project": "Wind VPPA", "month": 1, "hour": 16, "generation_mwh": 1658.32, "settlement_eur": -23477.0}, {"project": "Wind VPPA", "month": 1, "hour": 17, "generation_mwh": 1761.18, "settlement_eur": -15091.09}, {"project": "Wind VPPA", "month": 1, "hour": 18, "generation_mwh": 1857.98, "settlement_eur": -15176.06}, {"project": "Wind VPPA", "month": 1, "hour": 19, "generation_mwh": 1924.93, "settlement_eur": -21224.59}, {"project": "Wind VPPA", "month": 1, "hour": 20, "generation_mwh": 1960.72, "settlement_eur": -31054.96}, {"project": "Wind VPPA", "month": 1, "hour": 21, "generation_mwh": 1965.65, "settlement_eur": -36978.19}, {"project": "Wind VPPA", "month": 1, "hour": 22, "generation_mwh": 1899.01, "settlement_eur": -36642.16}, {"project": "Wind VPPA", "month": 1, "hour": 23, "generation_mwh": 1880.6, "settlement_eur": -44071.79}, {"project": "Wind VPPA", "month": 2, "hour": 0, "generation_mwh": 2459.03, "settlement_eur": -98468.31}, {"project": "Wind VPPA", "month": 2, "hour": 1, "generation_mwh": 2449.01, "settlement_eur": -103951.38}, {"project": "Wind VPPA", "month": 2, "hour": 2, "generation_mwh": 2454.54, "settlement_eur": -105398.78}, {"project": "Wind VPPA", "month": 2, "hour": 3, "generation_mwh": 2450.12, "settlement_eur": -105199.11}, {"project": "Wind VPPA", "month": 2, "hour": 4, "generation_mwh": 2438.0, "settlement_eur": -100985.82}, {"project": "Wind VPPA", "month": 2, "hour": 5, "generation_mwh": 2421.17, "settlement_eur": -92728.62}, {"project": "Wind VPPA", "month": 2, "hour": 6, "generation_mwh": 2453.28, "settlement_eur": -79504.55}, {"project": "Wind VPPA", "month": 2, "hour": 7, "generation_mwh": 2417.78, "settlement_eur": -62953.66}, {"project": "Wind VPPA", "month": 2, "hour": 8, "generation_mwh": 2351.46, "settlement_eur": -56006.71}, {"project": "Wind VPPA", "month": 2, "hour": 9, "generation_mwh": 2293.69, "settlement_eur": -58750.63}, {"project": "Wind VPPA", "month": 2, "hour": 10, "generation_mwh": 2271.56, "settlement_eur": -65717.41}, {"project": "Wind VPPA", "month": 2, "hour": 11, "generation_mwh": 2277.48, "settlement_eur": -67849.12}, {"project": "Wind VPPA", "month": 2, "hour": 12, "generation_mwh": 2299.24, "settlement_eur": -72543.12}, {"project": "Wind VPPA", "month": 2, "hour": 13, "generation_mwh": 2329.22, "settlement_eur": -78080.39}, {"project": "Wind VPPA", "month": 2, "hour": 14, "generation_mwh": 2349.2, "settlement_eur": -79383.15}, {"project": "Wind VPPA", "month": 2, "hour": 15, "generation_mwh": 2355.72, "settlement_eur": -75395.08}, {"project": "Wind VPPA", "month": 2, "hour": 16, "generation_mwh": 2353.5, "settlement_eur": -70002.27}, {"project": "Wind VPPA", "month": 2, "hour": 17, "generation_mwh": 2398.61, "settlement_eur": -60290.75}, {"project": "Wind VPPA", "month": 2, "hour": 18, "generation_mwh": 2473.37, "settlement_eur": -52274.12}, {"project": "Wind VPPA", "month": 2, "hour": 19, "generation_mwh": 2537.39, "settlement_eur": -58047.44}, {"project": "Wind VPPA", "month": 2, "hour": 20, "generation_mwh": 2560.78, "settlement_eur": -74510.46}, {"project": "Wind VPPA", "month": 2, "hour": 21, "generation_mwh": 2566.18, "settlement_eur": -83220.36}, {"project": "Wind VPPA", "month": 2, "hour": 22, "generation_mwh": 2496.57, "settlement_eur": -82216.76}, {"project": "Wind VPPA", "month": 2, "hour": 23, "generation_mwh": 2489.1, "settlement_eur": -94254.3}, {"project": "Wind VPPA", "month": 3, "hour": 0, "generation_mwh": 1733.45, "settlement_eur": -59135.52}, {"project": "Wind VPPA", "month": 3, "hour": 1, "generation_mwh": 1718.26, "settlement_eur": -61550.76}, {"project": "Wind VPPA", "month": 3, "hour": 2, "generation_mwh": 1643.2, "settlement_eur": -60727.7}, {"project": "Wind VPPA", "month": 3, "hour": 3, "generation_mwh": 1693.44, "settlement_eur": -64153.64}, {"project": "Wind VPPA", "month": 3, "hour": 4, "generation_mwh": 1631.55, "settlement_eur": -61321.68}, {"project": "Wind VPPA", "month": 3, "hour": 5, "generation_mwh": 1636.34, "settlement_eur": -57256.67}, {"project": "Wind VPPA", "month": 3, "hour": 6, "generation_mwh": 1717.49, "settlement_eur": -53252.45}, {"project": "Wind VPPA", "month": 3, "hour": 7, "generation_mwh": 1648.85, "settlement_eur": -44881.28}, {"project": "Wind VPPA", "month": 3, "hour": 8, "generation_mwh": 1540.8, "settlement_eur": -42994.45}, {"project": "Wind VPPA", "month": 3, "hour": 9, "generation_mwh": 1494.02, "settlement_eur": -47983.6}, {"project": "Wind VPPA", "month": 3, "hour": 10, "generation_mwh": 1540.47, "settlement_eur": -55494.02}, {"project": "Wind VPPA", "month": 3, "hour": 11, "generation_mwh": 1588.67, "settlement_eur": -56900.4}, {"project": "Wind VPPA", "month": 3, "hour": 12, "generation_mwh": 1603.03, "settlement_eur": -61630.32}, {"project": "Wind VPPA", "month": 3, "hour": 13, "generation_mwh": 1577.26, "settlement_eur": -62993.87}, {"project": "Wind VPPA", "month": 3, "hour": 14, "generation_mwh": 1572.72, "settlement_eur": -62362.08}, {"project": "Wind VPPA", "month": 3, "hour": 15, "generation_mwh": 1575.56, "settlement_eur": -56434.96}, {"project": "Wind VPPA", "month": 3, "hour": 16, "generation_mwh": 1541.23, "settlement_eur": -47808.06}, {"project": "Wind VPPA", "month": 3, "hour": 17, "generation_mwh": 1468.6, "settlement_eur": -35816.48}, {"project": "Wind VPPA", "month": 3, "hour": 18, "generation_mwh": 1454.42, "settlement_eur": -26835.17}, {"project": "Wind VPPA", "month": 3, "hour": 19, "generation_mwh": 1553.76, "settlement_eur": -25028.04}, {"project": "Wind VPPA", "month": 3, "hour": 20, "generation_mwh": 1646.5, "settlement_eur": -34965.72}, {"project": "Wind VPPA", "month": 3, "hour": 21, "generation_mwh": 1692.33, "settlement_eur": -43750.31}, {"project": "Wind VPPA", "month": 3, "hour": 22, "generation_mwh": 1683.44, "settlement_eur": -43768.7}, {"project": "Wind VPPA", "month": 3, "hour": 23, "generation_mwh": 1680.67, "settlement_eur": -50358.94}, {"project": "Wind VPPA", "month": 4, "hour": 0, "generation_mwh": 1127.02, "settlement_eur": -39753.61}, {"project": "Wind VPPA", "month": 4, "hour": 1, "generation_mwh": 1105.89, "settlement_eur": -40978.04}, {"project": "Wind VPPA", "month": 4, "hour": 2, "generation_mwh": 1090.95, "settlement_eur": -40892.77}, {"project": "Wind VPPA", "month": 4, "hour": 3, "generation_mwh": 1076.16, "settlement_eur": -41178.18}, {"project": "Wind VPPA", "month": 4, "hour": 4, "generation_mwh": 1055.03, "settlement_eur": -39993.19}, {"project": "Wind VPPA", "month": 4, "hour": 5, "generation_mwh": 1039.92, "settlement_eur": -37770.85}, {"project": "Wind VPPA", "month": 4, "hour": 6, "generation_mwh": 1028.76, "settlement_eur": -32494.14}, {"project": "Wind VPPA", "month": 4, "hour": 7, "generation_mwh": 933.05, "settlement_eur": -26386.41}, {"project": "Wind VPPA", "month": 4, "hour": 8, "generation_mwh": 780.46, "settlement_eur": -22903.64}, {"project": "Wind VPPA", "month": 4, "hour": 9, "generation_mwh": 690.5, "settlement_eur": -23356.47}, {"project": "Wind VPPA", "month": 4, "hour": 10, "generation_mwh": 730.92, "settlement_eur": -28896.05}, {"project": "Wind VPPA", "month": 4, "hour": 11, "generation_mwh": 809.38, "settlement_eur": -38454.76}, {"project": "Wind VPPA", "month": 4, "hour": 12, "generation_mwh": 835.36, "settlement_eur": -44805.25}, {"project": "Wind VPPA", "month": 4, "hour": 13, "generation_mwh": 838.91, "settlement_eur": -50468.83}, {"project": "Wind VPPA", "month": 4, "hour": 14, "generation_mwh": 856.43, "settlement_eur": -53784.54}, {"project": "Wind VPPA", "month": 4, "hour": 15, "generation_mwh": 892.86, "settlement_eur": -52908.15}, {"project": "Wind VPPA", "month": 4, "hour": 16, "generation_mwh": 941.36, "settlement_eur": -51859.62}, {"project": "Wind VPPA", "month": 4, "hour": 17, "generation_mwh": 994.04, "settlement_eur": -42290.41}, {"project": "Wind VPPA", "month": 4, "hour": 18, "generation_mwh": 988.51, "settlement_eur": -31170.96}, {"project": "Wind VPPA", "month": 4, "hour": 19, "generation_mwh": 942.07, "settlement_eur": -24229.68}, {"project": "Wind VPPA", "month": 4, "hour": 20, "generation_mwh": 994.11, "settlement_eur": -24084.24}, {"project": "Wind VPPA", "month": 4, "hour": 21, "generation_mwh": 1096.07, "settlement_eur": -31354.85}, {"project": "Wind VPPA", "month": 4, "hour": 22, "generation_mwh": 1146.87, "settlement_eur": -34872.71}, {"project": "Wind VPPA", "month": 4, "hour": 23, "generation_mwh": 1173.21, "settlement_eur": -39474.69}, {"project": "Wind VPPA", "month": 5, "hour": 0, "generation_mwh": 923.71, "settlement_eur": -31990.04}, {"project": "Wind VPPA", "month": 5, "hour": 1, "generation_mwh": 912.72, "settlement_eur": -33186.37}, {"project": "Wind VPPA", "month": 5, "hour": 2, "generation_mwh": 894.06, "settlement_eur": -33936.52}, {"project": "Wind VPPA", "month": 5, "hour": 3, "generation_mwh": 879.4, "settlement_eur": -34614.47}, {"project": "Wind VPPA", "month": 5, "hour": 4, "generation_mwh": 854.97, "settlement_eur": -33904.18}, {"project": "Wind VPPA", "month": 5, "hour": 5, "generation_mwh": 832.65, "settlement_eur": -32280.2}, {"project": "Wind VPPA", "month": 5, "hour": 6, "generation_mwh": 777.46, "settlement_eur": -27757.05}, {"project": "Wind VPPA", "month": 5, "hour": 7, "generation_mwh": 665.92, "settlement_eur": -22114.75}, {"project": "Wind VPPA", "month": 5, "hour": 8, "generation_mwh": 585.67, "settlement_eur": -20307.54}, {"project": "Wind VPPA", "month": 5, "hour": 9, "generation_mwh": 624.83, "settlement_eur": -23788.88}, {"project": "Wind VPPA", "month": 5, "hour": 10, "generation_mwh": 702.99, "settlement_eur": -29376.63}, {"project": "Wind VPPA", "month": 5, "hour": 11, "generation_mwh": 779.69, "settlement_eur": -32908.77}, {"project": "Wind VPPA", "month": 5, "hour": 12, "generation_mwh": 836.75, "settlement_eur": -36060.89}, {"project": "Wind VPPA", "month": 5, "hour": 13, "generation_mwh": 876.13, "settlement_eur": -38992.17}, {"project": "Wind VPPA", "month": 5, "hour": 14, "generation_mwh": 909.21, "settlement_eur": -42146.19}, {"project": "Wind VPPA", "month": 5, "hour": 15, "generation_mwh": 942.03, "settlement_eur": -43082.9}, {"project": "Wind VPPA", "month": 5, "hour": 16, "generation_mwh": 988.01, "settlement_eur": -43256.49}, {"project": "Wind VPPA", "month": 5, "hour": 17, "generation_mwh": 1008.44, "settlement_eur": -37573.93}, {"project": "Wind VPPA", "month": 5, "hour": 18, "generation_mwh": 988.28, "settlement_eur": -31085.48}, {"project": "Wind VPPA", "month": 5, "hour": 19, "generation_mwh": 900.91, "settlement_eur": -24473.05}, {"project": "Wind VPPA", "month": 5, "hour": 20, "generation_mwh": 811.33, "settlement_eur": -20324.9}, {"project": "Wind VPPA", "month": 5, "hour": 21, "generation_mwh": 821.4, "settlement_eur": -21632.66}, {"project": "Wind VPPA", "month": 5, "hour": 22, "generation_mwh": 870.67, "settlement_eur": -24568.71}, {"project": "Wind VPPA", "month": 5, "hour": 23, "generation_mwh": 906.28, "settlement_eur": -28474.09}, {"project": "Wind VPPA", "month": 6, "hour": 0, "generation_mwh": 766.17, "settlement_eur": -21541.26}, {"project": "Wind VPPA", "month": 6, "hour": 1, "generation_mwh": 753.26, "settlement_eur": -23109.9}, {"project": "Wind VPPA", "month": 6, "hour": 2, "generation_mwh": 716.48, "settlement_eur": -23155.79}, {"project": "Wind VPPA", "month": 6, "hour": 3, "generation_mwh": 688.33, "settlement_eur": -22965.75}, {"project": "Wind VPPA", "month": 6, "hour": 4, "generation_mwh": 672.61, "settlement_eur": -22409.18}, {"project": "Wind VPPA", "month": 6, "hour": 5, "generation_mwh": 667.94, "settlement_eur": -21522.33}, {"project": "Wind VPPA", "month": 6, "hour": 6, "generation_mwh": 622.76, "settlement_eur": -17518.67}, {"project": "Wind VPPA", "month": 6, "hour": 7, "generation_mwh": 525.85, "settlement_eur": -12765.23}, {"project": "Wind VPPA", "month": 6, "hour": 8, "generation_mwh": 469.07, "settlement_eur": -11509.19}, {"project": "Wind VPPA", "month": 6, "hour": 9, "generation_mwh": 491.64, "settlement_eur": -13437.59}, {"project": "Wind VPPA", "month": 6, "hour": 10, "generation_mwh": 554.61, "settlement_eur": -16662.6}, {"project": "Wind VPPA", "month": 6, "hour": 11, "generation_mwh": 625.08, "settlement_eur": -18783.96}, {"project": "Wind VPPA", "month": 6, "hour": 12, "generation_mwh": 677.54, "settlement_eur": -20988.59}, {"project": "Wind VPPA", "month": 6, "hour": 13, "generation_mwh": 714.35, "settlement_eur": -24535.53}, {"project": "Wind VPPA", "month": 6, "hour": 14, "generation_mwh": 752.06, "settlement_eur": -26623.98}, {"project": "Wind VPPA", "month": 6, "hour": 15, "generation_mwh": 792.28, "settlement_eur": -27246.14}, {"project": "Wind VPPA", "month": 6, "hour": 16, "generation_mwh": 819.5, "settlement_eur": -26663.22}, {"project": "Wind VPPA", "month": 6, "hour": 17, "generation_mwh": 822.67, "settlement_eur": -21336.49}, {"project": "Wind VPPA", "month": 6, "hour": 18, "generation_mwh": 806.98, "settlement_eur": -16912.76}, {"project": "Wind VPPA", "month": 6, "hour": 19, "generation_mwh": 755.5, "settlement_eur": -12942.89}, {"project": "Wind VPPA", "month": 6, "hour": 20, "generation_mwh": 696.29, "settlement_eur": -11834.84}, {"project": "Wind VPPA", "month": 6, "hour": 21, "generation_mwh": 700.28, "settlement_eur": -13020.66}, {"project": "Wind VPPA", "month": 6, "hour": 22, "generation_mwh": 725.36, "settlement_eur": -13948.83}, {"project": "Wind VPPA", "month": 6, "hour": 23, "generation_mwh": 758.84, "settlement_eur": -17983.2}, {"project": "Wind VPPA", "month": 7, "hour": 0, "generation_mwh": 686.76, "settlement_eur": -15456.91}, {"project": "Wind VPPA", "month": 7, "hour": 1, "generation_mwh": 694.4, "settlement_eur": -18752.22}, {"project": "Wind VPPA", "month": 7, "hour": 2, "generation_mwh": 707.28, "settlement_eur": -20385.87}, {"project": "Wind VPPA", "month": 7, "hour": 3, "generation_mwh": 716.69, "settlement_eur": -21763.74}, {"project": "Wind VPPA", "month": 7, "hour": 4, "generation_mwh": 718.66, "settlement_eur": -22101.7}, {"project": "Wind VPPA", "month": 7, "hour": 5, "generation_mwh": 728.18, "settlement_eur": -22169.81}, {"project": "Wind VPPA", "month": 7, "hour": 6, "generation_mwh": 721.65, "settlement_eur": -18745.57}, {"project": "Wind VPPA", "month": 7, "hour": 7, "generation_mwh": 653.62, "settlement_eur": -15150.17}, {"project": "Wind VPPA", "month": 7, "hour": 8, "generation_mwh": 617.99, "settlement_eur": -14445.75}, {"project": "Wind VPPA", "month": 7, "hour": 9, "generation_mwh": 668.84, "settlement_eur": -18405.27}, {"project": "Wind VPPA", "month": 7, "hour": 10, "generation_mwh": 744.16, "settlement_eur": -24087.82}, {"project": "Wind VPPA", "month": 7, "hour": 11, "generation_mwh": 815.32, "settlement_eur": -27873.07}, {"project": "Wind VPPA", "month": 7, "hour": 12, "generation_mwh": 872.48, "settlement_eur": -33545.54}, {"project": "Wind VPPA", "month": 7, "hour": 13, "generation_mwh": 913.34, "settlement_eur": -36700.43}, {"project": "Wind VPPA", "month": 7, "hour": 14, "generation_mwh": 942.79, "settlement_eur": -39220.4}, {"project": "Wind VPPA", "month": 7, "hour": 15, "generation_mwh": 946.62, "settlement_eur": -36901.64}, {"project": "Wind VPPA", "month": 7, "hour": 16, "generation_mwh": 934.96, "settlement_eur": -32704.27}, {"project": "Wind VPPA", "month": 7, "hour": 17, "generation_mwh": 911.45, "settlement_eur": -26463.8}, {"project": "Wind VPPA", "month": 7, "hour": 18, "generation_mwh": 854.41, "settlement_eur": -16355.02}, {"project": "Wind VPPA", "month": 7, "hour": 19, "generation_mwh": 766.58, "settlement_eur": -11786.52}, {"project": "Wind VPPA", "month": 7, "hour": 20, "generation_mwh": 660.76, "settlement_eur": -8993.5}, {"project": "Wind VPPA", "month": 7, "hour": 21, "generation_mwh": 626.12, "settlement_eur": -8432.35}, {"project": "Wind VPPA", "month": 7, "hour": 22, "generation_mwh": 632.66, "settlement_eur": -8582.36}, {"project": "Wind VPPA", "month": 7, "hour": 23, "generation_mwh": 663.36, "settlement_eur": -12060.84}, {"project": "Wind VPPA", "month": 8, "hour": 0, "generation_mwh": 830.96, "settlement_eur": -17887.0}, {"project": "Wind VPPA", "month": 8, "hour": 1, "generation_mwh": 830.16, "settlement_eur": -20815.76}, {"project": "Wind VPPA", "month": 8, "hour": 2, "generation_mwh": 822.7, "settlement_eur": -21656.29}, {"project": "Wind VPPA", "month": 8, "hour": 3, "generation_mwh": 806.98, "settlement_eur": -21934.13}, {"project": "Wind VPPA", "month": 8, "hour": 4, "generation_mwh": 792.14, "settlement_eur": -21574.87}, {"project": "Wind VPPA", "month": 8, "hour": 5, "generation_mwh": 775.32, "settlement_eur": -18548.65}, {"project": "Wind VPPA", "month": 8, "hour": 6, "generation_mwh": 776.74, "settlement_eur": -13470.64}, {"project": "Wind VPPA", "month": 8, "hour": 7, "generation_mwh": 724.7, "settlement_eur": -8998.62}, {"project": "Wind VPPA", "month": 8, "hour": 8, "generation_mwh": 615.33, "settlement_eur": -6592.83}, {"project": "Wind VPPA", "month": 8, "hour": 9, "generation_mwh": 562.22, "settlement_eur": -7701.09}, {"project": "Wind VPPA", "month": 8, "hour": 10, "generation_mwh": 591.1, "settlement_eur": -11777.88}, {"project": "Wind VPPA", "month": 8, "hour": 11, "generation_mwh": 652.42, "settlement_eur": -14184.33}, {"project": "Wind VPPA", "month": 8, "hour": 12, "generation_mwh": 693.09, "settlement_eur": -16801.6}, {"project": "Wind VPPA", "month": 8, "hour": 13, "generation_mwh": 714.77, "settlement_eur": -20210.22}, {"project": "Wind VPPA", "month": 8, "hour": 14, "generation_mwh": 717.21, "settlement_eur": -21585.66}, {"project": "Wind VPPA", "month": 8, "hour": 15, "generation_mwh": 715.15, "settlement_eur": -21095.41}, {"project": "Wind VPPA", "month": 8, "hour": 16, "generation_mwh": 718.68, "settlement_eur": -18854.02}, {"project": "Wind VPPA", "month": 8, "hour": 17, "generation_mwh": 715.37, "settlement_eur": -12702.16}, {"project": "Wind VPPA", "month": 8, "hour": 18, "generation_mwh": 700.33, "settlement_eur": -7928.57}, {"project": "Wind VPPA", "month": 8, "hour": 19, "generation_mwh": 658.09, "settlement_eur": -4587.05}, {"project": "Wind VPPA", "month": 8, "hour": 20, "generation_mwh": 667.33, "settlement_eur": -5016.01}, {"project": "Wind VPPA", "month": 8, "hour": 21, "generation_mwh": 735.7, "settlement_eur": -6964.05}, {"project": "Wind VPPA", "month": 8, "hour": 22, "generation_mwh": 773.13, "settlement_eur": -9438.71}, {"project": "Wind VPPA", "month": 8, "hour": 23, "generation_mwh": 795.68, "settlement_eur": -14859.13}, {"project": "Wind VPPA", "month": 9, "hour": 0, "generation_mwh": 734.91, "settlement_eur": -13436.02}, {"project": "Wind VPPA", "month": 9, "hour": 1, "generation_mwh": 716.68, "settlement_eur": -13131.14}, {"project": "Wind VPPA", "month": 9, "hour": 2, "generation_mwh": 693.26, "settlement_eur": -13605.43}, {"project": "Wind VPPA", "month": 9, "hour": 3, "generation_mwh": 679.34, "settlement_eur": -14377.83}, {"project": "Wind VPPA", "month": 9, "hour": 4, "generation_mwh": 672.41, "settlement_eur": -14270.19}, {"project": "Wind VPPA", "month": 9, "hour": 5, "generation_mwh": 672.21, "settlement_eur": -12442.57}, {"project": "Wind VPPA", "month": 9, "hour": 6, "generation_mwh": 693.14, "settlement_eur": -7205.63}, {"project": "Wind VPPA", "month": 9, "hour": 7, "generation_mwh": 697.69, "settlement_eur": -2039.92}, {"project": "Wind VPPA", "month": 9, "hour": 8, "generation_mwh": 637.57, "settlement_eur": 267.58}, {"project": "Wind VPPA", "month": 9, "hour": 9, "generation_mwh": 526.36, "settlement_eur": -2690.19}, {"project": "Wind VPPA", "month": 9, "hour": 10, "generation_mwh": 479.08, "settlement_eur": -5499.4}, {"project": "Wind VPPA", "month": 9, "hour": 11, "generation_mwh": 523.85, "settlement_eur": -7951.5}, {"project": "Wind VPPA", "month": 9, "hour": 12, "generation_mwh": 577.29, "settlement_eur": -11989.16}, {"project": "Wind VPPA", "month": 9, "hour": 13, "generation_mwh": 613.64, "settlement_eur": -14792.02}, {"project": "Wind VPPA", "month": 9, "hour": 14, "generation_mwh": 640.94, "settlement_eur": -15450.86}, {"project": "Wind VPPA", "month": 9, "hour": 15, "generation_mwh": 648.13, "settlement_eur": -12837.02}, {"project": "Wind VPPA", "month": 9, "hour": 16, "generation_mwh": 633.33, "settlement_eur": -9123.77}, {"project": "Wind VPPA", "month": 9, "hour": 17, "generation_mwh": 602.29, "settlement_eur": -3433.46}, {"project": "Wind VPPA", "month": 9, "hour": 18, "generation_mwh": 562.15, "settlement_eur": 783.19}, {"project": "Wind VPPA", "month": 9, "hour": 19, "generation_mwh": 587.38, "settlement_eur": 5781.04}, {"project": "Wind VPPA", "month": 9, "hour": 20, "generation_mwh": 675.2, "settlement_eur": 3241.64}, {"project": "Wind VPPA", "month": 9, "hour": 21, "generation_mwh": 753.55, "settlement_eur": -2286.74}, {"project": "Wind VPPA", "month": 9, "hour": 22, "generation_mwh": 772.39, "settlement_eur": -7420.03}, {"project": "Wind VPPA", "month": 9, "hour": 23, "generation_mwh": 770.59, "settlement_eur": -11491.34}], "checks": {"hours_loaded": 15331, "years": "2019 to 2020", "months_analysed": 9, "negative_price_hours": 246}, "strikes": {"Solar VPPA": 45.0, "Wind VPPA": 50.0}};
+const C = { "Solar VPPA": "#e9a23b", "Wind VPPA": "#2e7d6a" };
+const T = { "Solar VPPA": "#b5701a", "Wind VPPA": "#2e7d6a" };   // darker solar for text on light background
+const NAME = { "Solar VPPA": "Solar", "Wind VPPA": "Wind" };
+const MON = ["", "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const FONT = { family: "DM Sans, system-ui, sans-serif", size: 12, color: "#4a5a56" };
+const BASE = {
+  margin: { l: 40, r: 16, t: 10, b: 32 }, paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+  font: FONT, hovermode: "x unified", showlegend: false,
+  xaxis: { showgrid: false, linecolor: "#cfc9ba", tickfont: FONT, fixedrange: true },
+  yaxis: { gridcolor: "#ebe7dc", zeroline: false, tickfont: FONT, fixedrange: true },
+  hoverlabel: { bgcolor: "#13302b", font: { color: "#fff", family: FONT.family, size: 12 }, bordercolor: "#13302b" },
+};
+const CFG = { displayModeBar: false, responsive: true };
+const projects = [...new Set(DATA.report.map(r => r.project))];
+const months = [...new Set(DATA.report.map(r => r.month))].sort((a, b) => a - b);
+const X = months.map(m => MON[m]);
+const rows = p => months.map(m => DATA.report.find(r => r.project === p && r.month === m));
+const sum = a => a.reduce((s, v) => s + v, 0);
+const cumsum = a => { let s = 0; return a.map(v => (s += v)); };
+const fmt = (v, d = 1) => v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const sgn = (v, d = 1) => (v > 0 ? "+" : "") + fmt(v, d);
+const layout = extra => Object.assign({}, BASE, extra, {
+  xaxis: Object.assign({}, BASE.xaxis, extra && extra.xaxis), yaxis: Object.assign({}, BASE.yaxis, extra && extra.yaxis) });
+const label = (p, x, y, text, opts = {}) => Object.assign({ x, y, text, showarrow: false, xanchor: "left", xshift: 8,
+  font: { color: T[p], size: 12, family: FONT.family } }, opts);
+
+// data checks do not depend on the selection
+const ck = DATA.checks;
+document.getElementById("checks").innerHTML = `
+  <dt>Hours loaded (${ck.years})</dt><dd>${Number(ck.hours_loaded).toLocaleString("en-US")}</dd>
+  <dt>Complete months analysed</dt><dd>${ck.months_analysed}</dd>
+  <dt>Hours with negative prices in 2020</dt><dd>${ck.negative_price_hours}</dd>
+  <dt>Variance effects add up to the total gap</dt><dd class="tag ok" id="ck_sum"></dd>`;
+
+function render(view) {
+  const sel = view === "all" ? projects : [view];
+  const R = DATA.report.filter(r => sel.includes(r.project));
+  const paid = -sum(R.map(r => r.actual_settlement_eur)) / 1e6;       // positive = buyer paid the plants
+  const bud = -sum(R.map(r => r.forecast_settlement_eur)) / 1e6;
+  const gen = sum(R.map(r => r.actual_generation_mwh)) / 1e3;
+  const genB = sum(R.map(r => r.forecast_generation_mwh)) / 1e3;
+  const volCost = -sum(R.map(r => r.volume_variance_eur)) / 1e6;
+  const priceCost = -sum(R.map(r => r.price_variance_eur)) / 1e6;
+  const inv = DATA.recon.filter(r => sel.includes(r.project));
+  const flagged = inv.filter(r => r.flag === "REVIEW").sort((a, b) => a.month - b.month);
+  const gap = paid - bud;
+  document.getElementById("ck_sum").textContent = Math.abs(volCost + priceCost - gap) < 0.01 ? "Yes" : "Check";
+
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi"><div class="label">Paid to the plants</div><div class="value">EUR ${fmt(paid)}M</div><div class="note">budget EUR ${fmt(bud)}M</div></div>
+    <div class="kpi"><div class="label">Over budget</div><div class="value">${gap >= 0 ? "+" : "-"}EUR ${fmt(Math.abs(gap))}M</div>
+      <div class="note"><span class="${gap >= 0 ? "bad" : "good"}">${sgn(100 * gap / bud, 0)}%</span> vs budget</div></div>
+    <div class="kpi"><div class="label">Generation</div><div class="value">${fmt(gen, 0)} GWh</div><div class="note">${sgn(100 * (gen / genB - 1))}% vs budget</div></div>
+    <div class="kpi"><div class="label">Net cost per MWh</div><div class="value">EUR ${fmt(paid * 1e6 / (gen * 1e3))}</div><div class="note">contract minus captured price</div></div>`;
+
+  // Findings written from the numbers
+  let low = null;
+  sel.forEach(p => rows(p).forEach(r => { if (!low || r.capture_rate < low.capture_rate) low = r; }));
+  const disputed = sum(flagged.map(r => Math.abs(r.settlement_diff_eur)));
+  const f1 = Math.abs(priceCost) >= Math.abs(volCost)
+    ? `<b>Prices, not production, explain the gap.</b> Lower captured prices added EUR ${fmt(priceCost, 2)}M of cost; ` +
+      (Math.abs(volCost) < 0.01 ? `the volume effects of the two plants cancel each other out.` : `generation changed it by only EUR ${sgn(volCost, 2)}M.`)
+    : `<b>Production explains most of the gap:</b> EUR ${sgn(volCost, 2)}M from volume against EUR ${sgn(priceCost, 2)}M from prices.`;
+  const f2 = `<b>Lowest capture rate: ${NAME[low.project]} in ${MON[low.month]}, ${fmt(low.capture_rate * 100, 0)}%</b> of the average market price. That is the month where each MWh was worth least to the buyer.`;
+  const f3 = flagged.length
+    ? `<b>${flagged.length} invoice line${flagged.length > 1 ? "s" : ""} should not be paid yet:</b> EUR ${Math.round(disputed).toLocaleString("en-US")} in differences against my calculation.`
+    : `<b>All invoices match</b> my settlement calculation within 1%.`;
+  document.getElementById("findings").innerHTML = [f1, f2, f3].map(t => `<li>${t}</li>`).join("");
+
+  // 01 Cumulative payments
+  const tc = [], ann = [];
+  sel.forEach(p => {
+    const r = rows(p);
+    const b = cumsum(r.map(v => -v.forecast_settlement_eur / 1e6)), a = cumsum(r.map(v => -v.actual_settlement_eur / 1e6));
+    tc.push({ x: X, y: b, mode: "lines", line: { color: C[p], width: 2, dash: "dash" }, opacity: 0.8, hovertemplate: "%{y:.2f}<extra>" + NAME[p] + " budget</extra>" });
+    tc.push({ x: X, y: a, mode: "lines+markers", line: { color: C[p], width: 3.5 }, marker: { size: 7, line: { color: "#fcfbf8", width: 1.5 } },
+      hovertemplate: "%{y:.2f}<extra>" + NAME[p] + " actual</extra>" });
+    ann.push(label(p, X[X.length - 1], a[a.length - 1], "<b>" + NAME[p] + "</b> " + fmt(a[a.length - 1])));
+  });
+  Plotly.react("c_cum", tc, layout({ yaxis: { rangemode: "tozero" }, annotations: ann, margin: { l: 40, r: 78, t: 10, b: 32 } }), CFG);
+
+  // 01 Bridge
+  Plotly.react("c_bridge", [{
+    type: "waterfall", x: ["Budget", "Volume", "Price", "Actual"], measure: ["absolute", "relative", "relative", "total"],
+    y: [bud, volCost, priceCost, 0], text: [fmt(bud, 2), Math.abs(volCost) < 0.005 ? "0.00" : sgn(volCost, 2), sgn(priceCost, 2), fmt(paid, 2)],
+    textposition: "outside", textfont: { family: "JetBrains Mono, monospace", size: 12, color: "#1b2a27" }, cliponaxis: false,
+    connector: { line: { color: "#cfc9ba", width: 1, dash: "dot" } },
+    increasing: { marker: { color: "#b4452f" } }, decreasing: { marker: { color: "#8fb3ab" } }, totals: { marker: { color: "#13302b" } },
+    hovertemplate: "%{x}: %{text}<extra></extra>",
+  }], layout({ hovermode: "closest", yaxis: { rangemode: "tozero" }, margin: { l: 40, r: 16, t: 26, b: 32 } }), CFG);
+
+  // 02 Captured price vs contract price
+  const base = rows(projects[0]).map(v => v.baseload_price_eur_mwh);
+  const tp = [{ x: X, y: base, mode: "lines", line: { color: "#8a9692", width: 2 }, hovertemplate: "%{y:.1f}<extra>Average market price</extra>" }];
+  // label the market line in the month where it sits furthest above the captured prices
+  let li = 0, best = -Infinity;
+  base.forEach((b, i) => { const top = Math.max(...sel.map(p => rows(p)[i].actual_capture_price_eur_mwh)); if (b - top > best) { best = b - top; li = i; } });
+  const pa = [{ x: X[li], y: base[li], text: "Average market price", showarrow: false, yshift: best > 0 ? 12 : -12,
+    font: { color: "#8a9692", size: 11 } }];
+  sel.forEach(p => {
+    const cp = rows(p).map(v => v.actual_capture_price_eur_mwh), k = DATA.strikes[p];
+    tp.push({ x: X, y: X.map(() => k), mode: "lines", line: { color: C[p], width: 1.5, dash: "dot" }, hovertemplate: "%{y:.0f}<extra>" + NAME[p] + " contract</extra>" });
+    tp.push({ x: X, y: cp, mode: "lines+markers", line: { color: C[p], width: 3.5 }, marker: { size: 7, line: { color: "#fcfbf8", width: 1.5 } },
+      fill: sel.length === 1 ? "tonexty" : "none", fillcolor: p === "Solar VPPA" ? "rgba(233,162,59,0.12)" : "rgba(46,125,106,0.10)",
+      hovertemplate: "%{y:.1f}<extra>" + NAME[p] + " captured</extra>" });
+    pa.push({ x: X[X.length - 1], y: k, text: NAME[p] + " contract " + k, showarrow: false, xanchor: "right", yshift: 10, font: { color: T[p], size: 11 } });
+  });
+  Plotly.react("c_price", tp, layout({ yaxis: { rangemode: "tozero" }, annotations: pa }), CFG);
+
+  // 02 Capture rate
+  const tcap = sel.map(p => ({ x: X, y: rows(p).map(v => v.capture_rate * 100), mode: "lines+markers", line: { color: C[p], width: 3.5 },
+    marker: { size: 7, line: { color: "#fcfbf8", width: 1.5 } }, hovertemplate: "%{y:.0f}%<extra>" + NAME[p] + "</extra>" }));
+  const capAnn = sel.map(p => { const r = rows(p); return label(p, X[X.length - 1], r[r.length - 1].capture_rate * 100, "<b>" + NAME[p] + "</b>"); });
+  Plotly.react("c_cap", tcap, layout({ yaxis: { ticksuffix: "%" }, annotations: capAnn, margin: { l: 44, r: 54, t: 10, b: 32 },
+    shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: 100, y1: 100, line: { color: "#8a9692", width: 1, dash: "dot" } }] }), CFG);
+
+  // 03 Heatmap: payment per MWh by hour and month
+  const hours = [...Array(24).keys()];
+  const H = DATA.heat.filter(r => sel.includes(r.project));
+  const z = hours.map(h => months.map(m => {
+    const c = H.filter(r => r.hour === h && r.month === m), g = sum(c.map(r => r.generation_mwh));
+    return g > 0.5 ? -sum(c.map(r => r.settlement_eur)) / g : null;
+  }));
+  Plotly.react("c_heat", [{
+    type: "heatmap", x: X, y: hours.map(h => String(h).padStart(2, "0") + ":00"), z, xgap: 2, ygap: 1, hoverongaps: false,
+    colorscale: [[0, "#fcfbf8"], [0.35, "#bfd8d2"], [0.7, "#2e7d6a"], [1, "#13302b"]],
+    zmin: 0, zmax: Math.max(...z.flat().filter(v => v !== null)),  // hours where the buyer received money show as the lightest color
+    colorbar: { thickness: 10, outlinewidth: 0, tickfont: FONT, ticksuffix: " EUR", len: 0.9 },
+    hovertemplate: "%{x}, %{y}: EUR %{z:.1f}/MWh<extra></extra>",
+  }], layout({ hovermode: "closest", margin: { l: 52, r: 10, t: 6, b: 32 },
+    yaxis: { autorange: "reversed", dtick: 3, gridcolor: "rgba(0,0,0,0)" } }), CFG);
+
+  // 04 Monthly generation
+  const tg = [], n = sel.length, w = n > 1 ? 0.38 : 0.6;
+  sel.forEach((p, k) => {
+    const r = rows(p), off = n > 1 ? (k - 0.5) * 0.4 : 0, xi = months.map((_, i) => i + off);
+    tg.push({ type: "bar", x: xi, y: r.map(v => v.actual_generation_mwh / 1e3), width: w, marker: { color: C[p] },
+      customdata: X, hovertemplate: "%{customdata}: %{y:.1f} GWh<extra>" + NAME[p] + " actual</extra>" });
+    tg.push({ type: "scatter", mode: "markers", x: xi, y: r.map(v => v.forecast_generation_mwh / 1e3), customdata: X,
+      marker: { symbol: "line-ew", size: n > 1 ? 18 : 30, line: { width: 3, color: "#1b2a27" } },
+      hovertemplate: "%{customdata}: %{y:.1f} GWh<extra>" + NAME[p] + " budget</extra>" });
+  });
+  Plotly.react("c_gen", tg, layout({ barmode: "overlay", hovermode: "closest", xaxis: { tickvals: months.map((_, i) => i), ticktext: X } }), CFG);
+
+  // 05 Invoices
+  document.getElementById("tbl").innerHTML =
+    `<tr><th>Contract</th><th>Month</th><th class="num">Volume</th><th class="num">Settlement</th><th>Status</th></tr>` +
+    flagged.map(r => `<tr><td><span class="sw" style="background:${C[r.project]}"></span>${NAME[r.project]}</td><td>${MON[r.month]}</td>
+      <td class="num">${sgn(r.volume_diff_pct * 100)}%</td><td class="num">EUR ${Math.round(r.settlement_diff_eur).toLocaleString("en-US")}</td>
+      <td><span class="tag review">Review</span></td></tr>`).join("") +
+    `<tr><td colspan="4" style="color:var(--muted)">${inv.length - flagged.length} other lines within 1%</td><td><span class="tag ok">OK</span></td></tr>`;
+}
+
+document.querySelectorAll("#seg button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("#seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  render(b.dataset.v);
+}));
+render("all");
+</script>
+</body>
+</html>
