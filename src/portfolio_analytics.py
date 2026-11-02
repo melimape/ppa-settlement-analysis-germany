@@ -11,6 +11,7 @@ from pathlib import Path
 
 import duckdb
 import matplotlib
+import matplotlib.ticker
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -32,10 +33,12 @@ PROJECTS = {
 }
 INVOICE_TOLERANCE = 0.01  # flag invoice lines that differ by more than 1%
 
-# Chart colors: amber for solar, blue for wind (checked for colorblind readers)
-COLORS = {"Solar VPPA": "#c27c00", "Wind VPPA": "#1478a8"}
+# Brand colors (same as the dashboard): amber for solar, green for wind
+COLORS = {"Solar VPPA": "#e9a23b", "Wind VPPA": "#2e7d6a"}
+TEXT = {"Solar VPPA": "#b5701a", "Wind VPPA": "#2e7d6a"}  # darker amber for text on a light background
+BRAND = "#13302b"
 SHORT = {"Solar VPPA": "Solar", "Wind VPPA": "Wind"}
-INK, INK_2, MUTED, GRID, SURFACE = "#1f1f1f", "#55534f", "#8a8781", "#e6e4df", "#ffffff"
+INK, INK_2, MUTED, GRID, SURFACE = "#1b2a27", "#4a5a56", "#8a9692", "#ebe7dc", "#fcfbf8"
 SOURCE = "Source: Open Power System Data (2020-10-06), DE-LU day-ahead prices. Contracts are hypothetical."
 
 
@@ -218,7 +221,7 @@ def reconcile(actuals: pd.DataFrame, invoices: pd.DataFrame) -> pd.DataFrame:
 # charts
 def _style(ax, title, subtitle=""):
     ax.set_facecolor(SURFACE)
-    ax.set_title(title, loc="left", fontsize=13, fontweight="bold", color=INK, pad=24 if subtitle else 12)
+    ax.set_title(title, loc="left", fontsize=13, fontweight="bold", color=BRAND, pad=24 if subtitle else 12)
     if subtitle:
         ax.text(0, 1.03, subtitle, transform=ax.transAxes, fontsize=10, color=INK_2)
     ax.grid(axis="y", color=GRID, linewidth=0.8)
@@ -270,7 +273,7 @@ def charts(report: pd.DataFrame) -> None:
         ax.plot(x, bud, color=COLORS[name], lw=1.6, ls="--", alpha=0.8)
         ax.plot(x, act, color=COLORS[name], lw=2.6, marker="o", ms=5)
         ax.annotate(f"{SHORT[name]} actual  {act.iloc[-1]:.1f}", (x[-1], act.iloc[-1]), xytext=(8, 0),
-                    textcoords="offset points", va="center", fontsize=10, color=COLORS[name], fontweight="bold")
+                    textcoords="offset points", va="center", fontsize=10, color=TEXT[name], fontweight="bold")
         ax.annotate(f"{SHORT[name]} budget  {bud.iloc[-1]:.1f}", (x[-1], bud.iloc[-1]), xytext=(8, 0),
                     textcoords="offset points", va="center", fontsize=9, color=INK_2)
     ax.axhline(0, color="#bdbab3", lw=1)
@@ -286,15 +289,17 @@ def charts(report: pd.DataFrame) -> None:
     # 3. Capture rate with the lowest month marked
     fig, ax = plt.subplots(figsize=(12, 4.6), facecolor=SURFACE)
     ax.axhline(100, color=MUTED, lw=1, ls=":")
-    ax.text(0, 101.5, "market average = 100%", fontsize=9, color=MUTED, ha="left")
+    # the 100% reference is named on the axis, so it never collides with the data labels
+    ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(
+        lambda v, _: "market avg 100%" if abs(v - 100) < 1e-6 else f"{v:.0f}%"))
     for name, g in by.items():
         cr = g["capture_rate"] * 100
         ax.plot(x, cr, color=COLORS[name], lw=2.4, marker="o", ms=6)
         ax.annotate(SHORT[name], (x[-1], cr.iloc[-1]), xytext=(10, 0), textcoords="offset points",
-                    va="center", fontsize=10, fontweight="bold", color=COLORS[name])
+                    va="center", fontsize=10, fontweight="bold", color=TEXT[name])
         i = int(np.argmin(cr.values))
         ax.annotate(f"{lab[i]}: {cr.values[i]:.0f}%", (x[i], cr.values[i]), xytext=(0, -16),
-                    textcoords="offset points", ha="center", fontsize=9, color=COLORS[name])
+                    textcoords="offset points", ha="center", fontsize=9, color=TEXT[name])
     ax.set_xticks(x, lab)
     ax.set_xlim(-0.4, len(x) - 0.2)
     lo = min(g["capture_rate"].min() for g in by.values()) * 100
@@ -331,6 +336,22 @@ def main() -> None:
         con.execute("CREATE OR REPLACE TABLE invoice_reconciliation AS SELECT * FROM recon")
 
     charts(report)
+
+    # Hour of day x month view of the settlement, and simple data quality figures
+    h20 = hourly[(hourly["year"] == ANALYSIS_YEAR) & (hourly["month"].isin(report["month"].unique()))]
+    heat = h20.groupby(["project", "month", "hour"]).agg(
+        generation_mwh=("generation_mwh", "sum"), settlement_eur=("settlement_eur", "sum")).reset_index()
+    heat.round(3).to_csv(OUT / "settlement_by_hour.csv", index=False)
+    checks = {
+        "hours_loaded": int(len(df)),
+        "years": f"{int(df['year'].min())} to {int(df['year'].max())}",
+        "months_analysed": int(report["month"].nunique()),
+        "negative_price_hours": int((df.loc[df["year"] == ANALYSIS_YEAR, "price_eur_mwh"] < 0).sum()),
+    }
+    pd.Series(checks).to_json(OUT / "data_checks.json")
+
+    from build_dashboard import build
+    build(report, recon, heat, checks)
 
     tot = report.groupby("project").agg(
         gen=("actual_generation_mwh", "sum"), fc=("forecast_generation_mwh", "sum"),
